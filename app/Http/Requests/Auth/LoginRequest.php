@@ -96,12 +96,24 @@ class LoginRequest extends FormRequest
 
         $user = User::where('email', $this->input('email'))->first();
 
-        if ($user && Hash::check($this->input('password'), $user->password) && $user->two_factor_enabled && $user->two_factor_secret) {
-            $this->session()->put('2fa:user:id', $user->id);
-            $this->session()->put('2fa:remember', $this->boolean('remember'));
+        if ($user && Hash::check($this->input('password'), $user->password)) {
+            if ($user->two_factor_enabled) {
+                if (! $user->two_factor_secret) {
+                    RateLimiter::hit($this->throttleKey());
 
-            RateLimiter::clear($this->throttleKey());
-            return;
+                    throw ValidationException::withMessages([
+                        'email' => __('auth.failed'),
+                    ]);
+                }
+
+                $this->session()->regenerate();
+                $this->session()->put('2fa:user:id', $user->id);
+                $this->session()->put('2fa:remember', $this->boolean('remember'));
+                $this->session()->put('2fa:pending_at', now()->timestamp);
+
+                RateLimiter::clear($this->throttleKey());
+                return;
+            }
         }
 
 

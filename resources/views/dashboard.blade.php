@@ -2,6 +2,14 @@
 
 @section('content')
 
+@php($dashboardRole = Auth::user()->currentRole())
+<section class="role-workspace-banner" role="status" aria-label="Active workspace">
+    <span class="role-workspace-banner__eyebrow">Active workspace</span>
+    <h1 class="role-workspace-banner__name">
+        {{ \Illuminate\Support\Str::of($dashboardRole->name ?? 'Default role')->replace(['_', '-'], ' ')->title() }}
+    </h1>
+</section>
+
 <div class="row">
     {{-- <div class="col-xl-4">
         <!--begin::Stats Widget 11-->

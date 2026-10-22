@@ -14,26 +14,11 @@ use App\Http\Controllers\Auth\NewPasswordController;
 
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 
-use App\Http\Controllers\Auth\RegisteredUserController;
 
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 
 use Illuminate\Support\Facades\Route;
-
-
-
-Route::get('/register', [RegisteredUserController::class, 'create'])
-
-    ->middleware('guest')
-
-    ->name('register');
-
-
-
-Route::post('/register', [RegisteredUserController::class, 'store'])
-
-    ->middleware('guest');
 
 
 
@@ -56,18 +41,20 @@ Route::get('/two-factor', [TwoFactorController::class, 'showChallenge'])
 
 Route::post('/two-factor', [TwoFactorController::class, 'verify'])
     ->middleware('guest')
+    ->middleware('throttle:5,1')
     ->name('2fa.verify');
 
 Route::get('/two-factor/setup', [TwoFactorController::class, 'showSetup'])
     ->name('2fa.setup');
 
-Route::post('/two-factor/setup', [TwoFactorController::class, 'confirmSetup']);
+Route::post('/two-factor/setup', [TwoFactorController::class, 'confirmSetup'])->middleware('throttle:5,1');
 
 Route::middleware('auth')->group(function () {
     Route::get('/two-factor/manage', [TwoFactorController::class, 'showManage'])
         ->name('2fa.manage');
 
     Route::post('/two-factor/disable', [TwoFactorController::class, 'disable'])
+        ->middleware('throttle:5,1')
         ->name('2fa.disable');
 });
 

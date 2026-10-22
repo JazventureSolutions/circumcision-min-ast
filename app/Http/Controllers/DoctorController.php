@@ -2,25 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\Helper;
 use Illuminate\Http\Request;
 use App\Models\Doctor;
-use Illuminate\Support\Facades\DB;
+use App\Models\Role;
 use Illuminate\Support\Facades\Route;
 
 class DoctorController extends Controller
 {
     public function select2(Request $request)
     {
-        $doctors = Doctor::select([
+        $activeRole = $request->user()->currentRole();
+        $doctors = Doctor::visibleInRole($activeRole)
+            ->select([
             'doctors.id AS id',
             'doctors.name AS text',
         ]);
 
         if ($request->has('q')) {
-            $doctors = $doctors
-                ->where('id', $request->q)
-                ->orWhere('name', 'LIKE', '%' . $request->q . '%');
+            $doctors->where(function ($query) use ($request) {
+                $query->where('id', $request->q)
+                    ->orWhere('name', 'LIKE', '%' . $request->q . '%');
+            });
         }
 
         $doctors = $doctors
@@ -39,7 +41,9 @@ class DoctorController extends Controller
 
         if ($request->ajax()) {
 
-            $doctors = Doctor::select(['doctors.id', 'doctors.name']);
+            $activeRole = $request->user()->currentRole();
+            $doctors = Doctor::visibleInRole($activeRole)
+                ->select(['doctors.id', 'doctors.name']);
 
             return app('datatables')->of($doctors)
                 ->addColumn('actions', function ($doctor) {
@@ -72,14 +76,19 @@ class DoctorController extends Controller
         $title = 'Doctor';
         $doctor = new Doctor();
         $doctor->id = 0;
+        $activeRole = request()->user()->currentRole();
 
         if (Route::currentRouteName() == 'settings.doctors.edit') {
-            $doctor = Doctor::findOrFail($id);
+            $doctor = Doctor::visibleInRole($activeRole)->findOrFail($id);
         }
 
         return view('doctors.edit', [
             'title' => $title,
             'doctor' => $doctor,
+            'roles' => Role::orderBy('name')->get(),
+            'selectedRoleIds' => $doctor->exists
+                ? ($doctor->is_shared ? Role::pluck('id')->all() : $doctor->roles()->pluck('roles.id')->all())
+                : [$activeRole->id],
         ]);
     }
 
@@ -87,16 +96,33 @@ class DoctorController extends Controller
     {
         $rules = [
             'id' => ['required', 'numeric'],
-            'name' => ['required', 'string', 'min:1', 'max:255']
+            'name' => ['required', 'string', 'min:1', 'max:255'],
+            'role_ids' => ['nullable', 'array'],
+            'role_ids.*' => ['integer', 'exists:roles,id'],
+            'is_shared' => ['nullable', 'boolean'],
         ];
 
         $request->validate($rules);
+
+        $selectedRoleIds = array_unique(array_map('intval', $request->input('role_ids', [])));
+        $isAdmin = strtolower($request->user()->currentRole()->name ?? '') === 'admin';
+        $assignedRoleIds = $request->user()->roles()->pluck('roles.id')->map(function ($id) {
+            return (int) $id;
+        })->all();
+
+        if (! $isAdmin && array_diff($selectedRoleIds, $assignedRoleIds)) {
+            abort(403, 'You can only assign this doctor to roles assigned to your account.');
+        }
+
+        if ($request->boolean('is_shared') && ! $isAdmin) {
+            abort(403, 'Only an admin can make a doctor visible in every role.');
+        }
 
         $isEdit = is_numeric($request->id) && $request->id > 0;
         $doctor = new Doctor();
 
         if ($isEdit) {
-            $doctor = Doctor::findOrFail($request->id);
+            $doctor = Doctor::visibleInRole($request->user()->currentRole())->findOrFail($request->id);
         }
 
         $data = [
@@ -106,13 +132,17 @@ class DoctorController extends Controller
             'cell_number' => $request->cell_number,
             'city' => $request->city,
             'sign' => $request->sign,
+            'is_shared' => $request->boolean('is_shared'),
         ];
 
         if ($doctor->id > 0) {
             $doctor->update($data);
         } else {
+            $data['role_id'] = null;
             $doctor = Doctor::create($data);
         }
+
+        $doctor->roles()->sync($selectedRoleIds);
 
         return redirect()->route('settings.doctors');
     }

@@ -5,9 +5,21 @@
         <!--begin::Brand-->
         <div class="py-5 aside-brand d-flex flex-column align-items-center flex-column-auto py-lg-12">
             <!--begin::Logo-->
+            @php
+                $sidebarRole = auth()->user()->currentRole();
+                $sidebarLogo = $sidebarRole->header_logo ?: ($sidebarRole->logo ?? null);
+
+                if ($sidebarLogo && ! \Illuminate\Support\Str::startsWith($sidebarLogo, ['http://', 'https://', 'data:image/'])) {
+                    $sidebarLogo = asset(ltrim($sidebarLogo, '/'));
+                }
+            @endphp
             <a href="{{ url('/') }}">
-                <img alt="Logo" src="{{ url('/') }}/logo.jpg" class="max-h-30px" />
+                <img alt="{{ $sidebarRole->name ?? 'Clinic' }} logo"
+                    src="{{ $sidebarLogo ?: url('/logo.jpg') }}" class="max-h-30px" />
             </a>
+            <span class="active-role-rail-label">
+                {{ \Illuminate\Support\Str::of($sidebarRole->name ?? 'Default role')->replace(['_', '-'], ' ')->title() }}
+            </span>
             <!--end::Logo-->
         </div>
         <!--end::Brand-->
@@ -873,7 +885,7 @@
                     <!--begin::List-->
                     
                     <!--end::List-->
-                    @if(auth()->user()->roles->whereIn('name', ['aesthetics_botox', 'aesthetics_filler', 'aesthetics_mesotherapy'])->count() > 0)
+                    @if(in_array(auth()->user()->currentRole()->name ?? '', ['aesthetics_botox', 'aesthetics_filler', 'aesthetics_mesotherapy'], true))
                     <!--begin::List-->
                     <div class="list list-hover">
                         <!--begin::Item-->

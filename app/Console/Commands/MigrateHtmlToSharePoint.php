@@ -32,9 +32,7 @@ class MigrateHtmlToSharePoint extends Command
 
         $query = Report::query()
             ->whereNotNull('html')
-            ->where('html', '!=', '')
-            ->whereNotNull('sharepoint_url')
-            ->where('sharepoint_url', '!=', '');
+            ->whereRaw("TRIM(html) <> ''");
 
         if ($this->option('missing_sharepoint_html_url')) {
             $query->where(function ($q) {
@@ -81,7 +79,7 @@ class MigrateHtmlToSharePoint extends Command
             return 0;
         }
 
-        $this->info("Found {$total} reports with HTML content but no SharePoint HTML URL.");
+        $this->info("Found {$total} reports with non-blank HTML content to upload.");
 
         if ($dryRun) {
             $this->warn('Dry-run mode: no changes will be made.');
@@ -125,6 +123,7 @@ class MigrateHtmlToSharePoint extends Command
 
                     $htmlFilename = "report-{$report->patient_id}-{$slug}.html";
                     $htmlRemotePath = "patient_reports/{$report->patient_id}/HTML/{$htmlFilename}";
+                    $html = $report->getRawOriginal('html');
 
                     if ($dryRun) {
                         $processed++;
@@ -139,7 +138,7 @@ class MigrateHtmlToSharePoint extends Command
 
                         while ($attempt < $maxAttempts) {
                             $attempt++;
-                            $sharepointHtmlUrl = $service->uploadContent($report->html, $htmlRemotePath, 'text/html');
+                            $sharepointHtmlUrl = $service->uploadContent($html, $htmlRemotePath, 'text/html');
 
                             if ($sharepointHtmlUrl !== null) {
                                 break;

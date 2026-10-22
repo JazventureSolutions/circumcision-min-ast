@@ -53,10 +53,11 @@ class UploadReportToSharePointJob implements ShouldQueue
             }
         }
 
-        if (empty($report->sharepoint_html_url) && ! empty($report->html)) {
+        $html = $report->getRawOriginal('html');
+        if (is_string($html) && trim($html) !== '') {
             $htmlFilename = str_replace('.pdf', '.html', $this->filename);
             $htmlRemotePath = "patient_reports/{$patientId}/HTML/{$htmlFilename}";
-            $sharepointHtmlUrl = $service->uploadContent($report->html, $htmlRemotePath, 'text/html');
+            $sharepointHtmlUrl = $service->uploadContent($html, $htmlRemotePath, 'text/html');
             if ($sharepointHtmlUrl) {
                 $report->sharepoint_html_url = $sharepointHtmlUrl;
                 $report->html = '';

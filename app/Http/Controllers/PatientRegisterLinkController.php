@@ -123,16 +123,18 @@ class PatientRegisterLinkController extends Controller
                 'patient_inquiries.cell_number',
                 'patient_inquiries.email',
                 'patient_inquiries.patient_id',
+                'patient_inquiries.remote_patent_status',
             ])
-                ->leftJoin('patients', function ($join) {
-                    $join->on('patient_inquiries.patient_id', 'patients.id');
-                })->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
+                ->with('patient')
+                ->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
 
-            if ($request->has('branch_id')) {
+            if ($request->filled('branch_id')) {
                 $patient_inqs = $patient_inqs
                     ->where(function ($where) use ($request) {
                         $where->where('patient_inquiries.patient_id', '0')
-                            ->orWhere('patients.branch_id', $request->branch_id);
+                            ->orWhereHas('patient', function ($patientQuery) use ($request) {
+                                $patientQuery->where('branch_id', $request->branch_id);
+                            });
                     });
             }
 
@@ -148,6 +150,8 @@ class PatientRegisterLinkController extends Controller
                     $html = '';
                     if ($patient_inq->patient_id == '0') {
                         $html = '<span class="label label-lg font-weight-bold label-light-danger label-inline">Not Yet Registered</span>';
+                    } elseif (! $patient_inq->patient) {
+                        $html = '<span class="label label-lg font-weight-bold label-light-warning label-inline">Patient record unavailable</span>';
                     } else {
                         $html = '<a href="' . route('patients.edit', ['id' => $patient_inq->patient_id]) . '" target="_blank" class="mr-2"><span class="label label-lg font-weight-bold label-light-success label-inline">( ' . $patient_inq->patient->name . ' )</span></a>';
                         if ($patient_inq->patient->latest_appointment) {
@@ -183,6 +187,12 @@ class PatientRegisterLinkController extends Controller
                     return $html;
                 })
                 ->rawColumns(['remote_patent_status','registered', 'actions'])
+                ->orderColumn('id', function ($query, $order) {
+                    $query->orderBy('patient_inquiries.id', $order);
+                })
+                ->filterColumn('id', function ($query, $keyword) {
+                    $query->where('patient_inquiries.id', 'LIKE', '%' . $keyword . '%');
+                })
                 ->make();
         }
 

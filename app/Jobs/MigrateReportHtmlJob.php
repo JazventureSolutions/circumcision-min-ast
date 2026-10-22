@@ -31,16 +31,9 @@ class MigrateReportHtmlJob implements ShouldQueue
     {
         try {
             $report = Report::find($this->reportId);
+            $html = $report ? $report->getRawOriginal('html') : null;
 
-            if (! $report || empty($report->html)) {
-                return;
-            }
-
-            if (empty($report->sharepoint_url)) {
-                return;
-            }
-
-            if (! empty($report->sharepoint_html_url)) {
+            if (! $report || ! is_string($html) || trim($html) === '') {
                 return;
             }
 
@@ -49,7 +42,7 @@ class MigrateReportHtmlJob implements ShouldQueue
             $htmlFilename = "report-{$report->patient_id}-{$slug}.html";
             $htmlRemotePath = "patient_reports/{$report->patient_id}/HTML/{$htmlFilename}";
 
-            $sharepointHtmlUrl = $service->uploadContent($report->html, $htmlRemotePath, 'text/html');
+            $sharepointHtmlUrl = $service->uploadContent($html, $htmlRemotePath, 'text/html');
 
             if ($sharepointHtmlUrl) {
                 $report->update([

@@ -1,0 +1,411 @@
+<?php $__env->startSection('content'); ?>
+
+<div class="card card-custom">
+    <!--begin::Card body-->
+    <div class="card-body">
+
+        <form id="kt_form" class="form" method="POST" action="<?php echo e(route('settings.doctors.store')); ?>">
+            <?php echo csrf_field(); ?>
+
+            <input type="hidden" name="id" value="<?php echo e($doctor->id ?? 0); ?>">
+
+            <!--begin::Row-->
+            <div class="row">
+                <div class="col-md-6">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <label class="form-label">Doctor Name</label>
+                        <input
+                            class="form-control form-control-lg <?php echo e($errors->has('name') ? 'is-invalid' : ''); ?>"
+                            type="text" name="name" placeholder="Doctor Name"
+                            value="<?php echo e(old('name', $doctor->name ?? '')); ?>" required />
+
+                        <?php if($errors->has('name')): ?>
+                        <span class=" invalid-feedback"><?php echo e($errors->first('name')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <!--end::Group-->
+
+                </div>
+                <div class="col-md-6">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <label class="form-label">Town/City</label>
+                        <div class="input-group input-group-lg <?php echo e($errors->has('city') ? 'is-invalid' : ''); ?>">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="la la-home"></i>
+                                </span>
+                            </div>
+                            <input type="text"
+                                class="form-control form-control-lg <?php echo e($errors->has('city') ? 'is-invalid' : ''); ?>"
+                                name="city" value="<?php echo e(old('city', $doctor->city ?? '')); ?>"
+                                placeholder="Town/City" />
+                        </div>
+
+                        <?php if($errors->has('city')): ?>
+                        <span class=" invalid-feedback"><?php echo e($errors->first('city')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <!--end::Group-->
+
+                </div>
+                <div class="col-md-6">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <label class="form-label">Mobile</label>
+                        <div
+                            class="input-group input-group-lg <?php echo e($errors->has('cell_number') ? 'is-invalid' : ''); ?>">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="la la-phone"></i>
+                                </span>
+                            </div>
+                            <input type="tel"
+                                class="form-control form-control-lg <?php echo e($errors->has('cell_number') ? 'is-invalid' : ''); ?>"
+                                name="cell_number" value="<?php echo e(old('cell_number', $doctor->cell_number ?? '')); ?>"
+                                placeholder="Mobile" />
+                        </div>
+
+                        <?php if($errors->has('cell_number')): ?>
+                        <span class=" invalid-feedback"><?php echo e($errors->first('cell_number')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <!--end::Group-->
+
+                </div>
+                <div class="col-md-6">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <label class="form-label">House Telephone</label>
+                        <div class="input-group input-group-lg <?php echo e($errors->has('phone') ? 'is-invalid' : ''); ?>">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="la la-phone"></i>
+                                </span>
+                            </div>
+                            <input type="tel"
+                                class="form-control form-control-lg <?php echo e($errors->has('phone') ? 'is-invalid' : ''); ?>"
+                                name="phone" value="<?php echo e(old('phone', $doctor->phone ?? '')); ?>"
+                                placeholder="House Telephone" />
+                        </div>
+
+                        <?php if($errors->has('phone')): ?>
+                        <span class=" invalid-feedback"><?php echo e($errors->first('phone')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <!--end::Group-->
+
+                </div>
+                <div class="col-md-6">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-group input-group-lg <?php echo e($errors->has('email') ? 'is-invalid' : ''); ?>">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="la la-at"></i>
+                                </span>
+                            </div>
+                            <input type="email"
+                                class="form-control form-control-lg <?php echo e($errors->has('email') ? 'is-invalid' : ''); ?>"
+                                name="email" value="<?php echo e(old('email', $doctor->email ?? '')); ?>"
+                                placeholder="Email Address" />
+                        </div>
+
+                        <?php if($errors->has('email')): ?>
+                        <span class=" invalid-feedback"><?php echo e($errors->first('email')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <!--end::Group-->
+
+                </div>
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="d-flex align-items-center mb-4">
+                            <input type="checkbox" name="is_shared" value="1"
+                                <?php echo e(old('is_shared', $doctor->is_shared) ? 'checked' : ''); ?>>
+                            <span class="ml-2 font-weight-bold">Visible in every role</span>
+                        </label>
+                        <label class="form-label">Visible in roles</label>
+                        <div class="d-flex flex-wrap">
+                            <?php $__currentLoopData = $roles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $role): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <label class="mr-5 mb-3">
+                                    <input type="checkbox" name="role_ids[]" value="<?php echo e($role->id); ?>"
+                                        <?php echo e(in_array($role->id, array_map('intval', old('role_ids', $selectedRoleIds)), true) ? 'checked' : ''); ?>>
+                                    <?php echo e(\Illuminate\Support\Str::of($role->name)->replace(['_', '-'], ' ')->title()); ?>
+
+                                </label>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </div>
+                        <small class="form-text text-muted">Select each workspace that should be able to use this doctor.</small>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <hr>
+                </div>
+                <div class="col-md-3">
+                    <label>Sign</label>
+                    <img src="<?php echo e(old('sign', $doctor->sign)); ?>" class="canvas-sign" id="canvas-doctor-sign" />
+                    <input type="hidden" name="sign" value="<?php echo e(old('sign', $doctor->sign)); ?>">
+                    <button type="button" class="btn btn-primary btn-block btn-sign"
+                        data-sign-type="doctor">Manage Signature</button>
+                </div>
+                <div class="col-md-12 my-2">
+
+                    <!--begin::Group-->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary mr-2">Submit</button>
+                        
+                    </div>
+
+                </div>
+            </div>
+            <!--end::Row-->
+
+        </form>
+
+    </div>
+    <!--begin::Card body-->
+</div>
+
+<div class="modal fade" id="signModal" tabindex="-1" aria-labelledby="signModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Sign</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <i aria-hidden="true" class="ki ki-close"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="float: right">
+                    <button type="button" class="btn btn-danger" id="sig-clearBtn">Clear</button>
+                    <button type="button" class="btn btn-success" id="sig-submitBtn">Save</button>
+                </div>
+                <canvas id="canvas-main" class="canvas-main"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php $__env->stopSection(); ?>
+
+
+<?php $__env->startSection('styles'); ?>
+
+<link rel="stylesheet" type="text/css" href="<?php echo e(url('/')); ?>/assets/plugins/custom/datetimepicker/jquery.datetimepicker.min.css">
+<style>
+    .canvas-main {
+        width: 300px;
+        height: 150px;
+        border: 1px solid;
+    }
+    .canvas-sign {
+        width: 100%;
+        min-width: 150px;
+        min-height: 150px;
+        border: 1px solid;
+    }
+</style>
+
+<?php $__env->stopSection(); ?>
+
+
+<?php $__env->startSection('scripts'); ?>
+<script>
+    $(document).ready(function () {
+        $('#signModal').on('shown.bs.modal', function (e) {
+            $('html').css('overflow', 'hidden');
+        });
+
+        $('#signModal').on('hidden.bs.modal', function (e) {
+            $('html').css('overflow', 'unset');
+        });
+
+        $(document).on('click', '.btn-sign', function () {
+            $('#signModal').modal('show');
+
+            var SIGN_TYPE = $(this).data('sign-type');
+
+            handleSign(SIGN_TYPE);
+        });
+
+        function handleSign(_TYPE) {
+            window.requestAnimFrame = (function(callback) {
+                return window.requestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                window.oRequestAnimationFrame ||
+                window.msRequestAnimaitonFrame ||
+                function(callback) {
+                    window.setTimeout(callback, 1000 / 60);
+                };
+            })();
+
+            canvasHeight = 150; //document.getElementById("html-content-" + _TYPE).querySelector('section').offsetHeight;
+            canvasWidth = 300; //document.getElementById("html-content-" + _TYPE).querySelector('section').offsetWidth;
+
+            canvas = document.getElementById("canvas-main");
+            canvas.height = canvasHeight;
+            canvas.width = canvasWidth;
+
+            var ctx = canvas.getContext("2d");
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+
+            var drawing = false;
+            var mousePos = {
+                x: 0,
+                y: 0
+            };
+            var lastPos = mousePos;
+
+            function canvasmousedown(e) {
+                drawing = true;
+                lastPos = getMousePos(canvas, e);
+            }
+
+            canvas.addEventListener("mousedown", canvasmousedown, false);
+
+            function canvasmouseup(e) {
+                drawing = false;
+            }
+
+            canvas.addEventListener("mouseup", canvasmouseup, false);
+
+            function canvasmousemove(e) {
+                mousePos = getMousePos(canvas, e);
+            }
+
+            canvas.addEventListener("mousemove", canvasmousemove, false);
+
+            function canvastouchmove(e) {
+                var touch = e.touches[0];
+                var me = new MouseEvent("mousemove", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(me);
+            }
+
+            canvas.addEventListener("touchmove", canvastouchmove, false);
+
+            function canvastouchstart(e) {
+                mousePos = getTouchPos(canvas, e);
+                var touch = e.touches[0];
+                var me = new MouseEvent("mousedown", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(me);
+            }
+
+            canvas.addEventListener("touchstart", canvastouchstart, false);
+
+            function canvastouchend(e) {
+                var me = new MouseEvent("mouseup", {});
+                canvas.dispatchEvent(me);
+            }
+
+            canvas.addEventListener("touchend", canvastouchend, false);
+
+            function getMousePos(canvasDom, mouseEvent) {
+                var rect = canvasDom.getBoundingClientRect();
+                return {
+                    x: mouseEvent.clientX - rect.left,
+                    y: mouseEvent.clientY - rect.top
+                }
+            }
+
+            function getTouchPos(canvasDom, touchEvent) {
+                var rect = canvasDom.getBoundingClientRect();
+                return {
+                    x: touchEvent.touches[0].clientX - rect.left,
+                    y: touchEvent.touches[0].clientY - rect.top
+                }
+            }
+
+            function renderCanvas() {
+                if (drawing) {
+                    ctx.moveTo(lastPos.x, lastPos.y);
+                    ctx.lineTo(mousePos.x, mousePos.y);
+                    ctx.stroke();
+                    lastPos = mousePos;
+                }
+            }
+
+            // Prevent scrolling when touching the canvas
+            function documenttouchstart(e) {
+                if (e.target == canvas) {
+                    e.preventDefault();
+                }
+            }
+            document.body.addEventListener("touchstart", documenttouchstart, false);
+            function documenttouchend(e) {
+                if (e.target == canvas) {
+                    e.preventDefault();
+                }
+            }
+            document.body.addEventListener("touchend", documenttouchend, false);
+            function documenttouchmove(e) {
+                if (e.target == canvas) {
+                    e.preventDefault();
+                }
+            }
+            document.body.addEventListener("touchmove", documenttouchmove, false);
+
+            (function drawLoop() {
+                requestAnimFrame(drawLoop);
+                renderCanvas();
+            })();
+
+            function clearCanvas() {
+                canvas.width = canvas.width;
+            }
+
+            // Set up the UI
+            var sigImage = document.getElementById("canvas-" + _TYPE + "-sign");
+            var clearBtn = document.getElementById("sig-clearBtn");
+            var submitBtn = document.getElementById("sig-submitBtn");
+
+            clearBtn.addEventListener("click", clearCanvas, false);
+
+            function submitCanvas(e) {
+
+                var dataUrl = canvas.toDataURL();
+                sigImage.setAttribute("src", dataUrl);
+
+                $('[name="sign"]').val(dataUrl);
+
+                canvas.removeEventListener("mousedown", canvasmousedown);
+                canvas.removeEventListener("mouseup", canvasmouseup);
+                canvas.removeEventListener("mousemove", canvasmousemove);
+                canvas.removeEventListener("touchmove", canvastouchmove);
+                canvas.removeEventListener("touchstart", canvastouchstart);
+                canvas.removeEventListener("touchend", canvastouchend);
+                canvas.removeEventListener("touchstart", canvastouchstart);
+
+                document.body.removeEventListener("touchstart", documenttouchstart);
+                document.body.removeEventListener("touchend", documenttouchend);
+                document.body.removeEventListener("touchmove", documenttouchmove);
+
+                clearBtn.removeEventListener("click", clearCanvas);
+                submitBtn.removeEventListener("click", submitCanvas);
+
+                $('#signModal').modal('hide');
+            }
+
+            submitBtn.addEventListener("click", submitCanvas, false);
+        }
+    });
+</script>
+
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.default', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\xamp\htdocs\circumcision-min-ast\resources\views/doctors/edit.blade.php ENDPATH**/ ?>

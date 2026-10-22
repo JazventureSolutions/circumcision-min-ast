@@ -45,22 +45,27 @@
 
                     <div class="card card-custom card-stretch gutter-b">
                         <div class="card-body">
-                            <div class="text-center mb-8">
-                                <div class="d-inline-flex align-items-center justify-content-center"
-                                     style="width:220px; height:220px; background:#ffffff; border-radius:16px; box-shadow:0 0 0 1px rgba(0,0,0,.05);">
-                                    <img src="{{ $qrCodeUrl }}" alt="TOTP QR Code"
-                                         style="width:200px; height:200px; display:block;" />
-                                </div>
-                            </div>
-
                             <div class="form-group">
                                 <label class="font-weight-bold">Secret Key</label>
                                 <input type="text" readonly class="form-control form-control-solid" value="{{ $secret }}" />
+                            </div>
+                            <div class="form-group">
+                                <label class="font-weight-bold">Authenticator setup URI</label>
+                                <textarea readonly class="form-control form-control-solid" rows="3">{{ $qrCodeUrl }}</textarea>
                             </div>
 
                             @if ($enabled)
                                 <form method="POST" action="{{ route('2fa.disable') }}">
                                     @csrf
+                                    <div class="form-group">
+                                        <label class="font-weight-bold" for="disable-code">Authenticator code required to disable MFA</label>
+                                        <input id="disable-code" class="form-control form-control-solid" type="text"
+                                            name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                                            autocomplete="one-time-code" required />
+                                        @error('code')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
                                     <button type="submit" class="btn btn-danger font-weight-bold px-9 py-4 my-3">Disable Two-Factor Authentication</button>
                                 </form>
                             @else

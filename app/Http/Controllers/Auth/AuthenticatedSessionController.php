@@ -40,7 +40,8 @@ class AuthenticatedSessionController extends Controller
             $request->session()->put('2fa:setup:remember', $request->boolean('remember'));
 
             Auth::guard('web')->logout();
-            $request->session()->regenerateToken();
+            Cookie::queue(Cookie::forget(Auth::getRecallerName()));
+            $request->session()->regenerate();
 
             return redirect()->route('2fa.setup');
         }

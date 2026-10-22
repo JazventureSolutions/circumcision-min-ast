@@ -6,7 +6,6 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -60,21 +59,42 @@ class User extends Authenticatable
     }
 	public function roles()
     {
-        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+        $roles = $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+        $activeRoleId = session('active_role_id');
+
+        if ($activeRoleId) {
+            $roles->orderByRaw('CASE WHEN roles.id = ? THEN 0 ELSE 1 END', [$activeRoleId]);
+        }
+
+        return $roles->orderBy('roles.id');
+    }
+
+    public function currentRole()
+    {
+        $roles = $this->roles();
+        $activeRoleId = session('active_role_id');
+
+        if ($activeRoleId) {
+            $activeRole = (clone $roles)->where('roles.id', $activeRoleId)->first();
+            if ($activeRole) {
+                return $activeRole;
+            }
+        }
+
+        return $roles->orderBy('roles.id')->first();
     }
 
     public function currentRoleId()
     {
-        $roleId = DB::table('role_user')
-            ->where('user_id', $this->id)
-            ->orderBy('role_id')
-            ->value('role_id');
+        $role = $this->currentRole();
 
-        return $roleId ?: 1;
+        return $role ? $role->id : 1;
     }
 
     public function hasRole($role)
     {
-        return $this->roles->contains('name', $role);
+        $activeRole = $this->currentRole();
+
+        return $activeRole && $activeRole->name === $role;
     }
 }

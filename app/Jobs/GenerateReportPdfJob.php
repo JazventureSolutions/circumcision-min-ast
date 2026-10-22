@@ -26,16 +26,24 @@ class GenerateReportPdfJob implements ShouldQueue
     {
         try {
             $report = Report::find($this->reportId);
-            if (! $report || empty($report->html)) {
+            $html = $report ? $report->getRawOriginal('html') : null;
+            if (! $report || ! is_string($html) || trim($html) === '') {
                 return;
             }
 
             $pdfData = $reportPdfService->generate($report);
-            $report->update([
+            $updates = [
                 'filename' => $pdfData['filename'],
                 'file_url' => $pdfData['file_url'],
                 'sharepoint_url' => $pdfData['sharepoint_url'] ?? null,
-            ]);
+            ];
+
+            if (! empty($pdfData['sharepoint_html_url'])) {
+                $updates['sharepoint_html_url'] = $pdfData['sharepoint_html_url'];
+                $updates['html'] = '';
+            }
+
+            $report->update($updates);
         } catch (\Throwable $exception) {
             Log::error("GenerateReportPdfJob failed for report {$this->reportId}: {$exception->getMessage()}", [
                 'report_id' => $this->reportId,

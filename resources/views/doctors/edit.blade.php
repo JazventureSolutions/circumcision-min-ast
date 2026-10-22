@@ -128,6 +128,26 @@
 
                 </div>
                 <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="d-flex align-items-center mb-4">
+                            <input type="checkbox" name="is_shared" value="1"
+                                {{ old('is_shared', $doctor->is_shared) ? 'checked' : '' }}>
+                            <span class="ml-2 font-weight-bold">Visible in every role</span>
+                        </label>
+                        <label class="form-label">Visible in roles</label>
+                        <div class="d-flex flex-wrap">
+                            @foreach ($roles as $role)
+                                <label class="mr-5 mb-3">
+                                    <input type="checkbox" name="role_ids[]" value="{{ $role->id }}"
+                                        {{ in_array($role->id, array_map('intval', old('role_ids', $selectedRoleIds)), true) ? 'checked' : '' }}>
+                                    {{ \Illuminate\Support\Str::of($role->name)->replace(['_', '-'], ' ')->title() }}
+                                </label>
+                            @endforeach
+                        </div>
+                        <small class="form-text text-muted">Select each workspace that should be able to use this doctor.</small>
+                    </div>
+                </div>
+                <div class="col-md-12">
                     <hr>
                 </div>
                 <div class="col-md-3">

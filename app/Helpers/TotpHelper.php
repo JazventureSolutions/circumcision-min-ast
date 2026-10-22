@@ -18,11 +18,7 @@ class TotpHelper
 
     public static function getQrCodeInlineUrl(string $label, string $secret, string $issuer = 'Circumcision Clinic'): string
     {
-        $label = rawurlencode($label);
-        $issuer = rawurlencode($issuer);
-        $otpauth = sprintf('otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30', $issuer, $label, $secret, $issuer);
-
-        return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($otpauth);
+        return self::getOtpAuthUrl($label, $secret, $issuer);
     }
 
     public static function getOtpAuthUrl(string $label, string $secret, string $issuer = 'Circumcision Clinic'): string

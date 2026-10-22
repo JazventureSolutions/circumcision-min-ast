@@ -217,7 +217,8 @@ class AppointmentController extends Controller
             $appointment = Appointment::findOrFail($appointment_id);
             $branches = $appointment->branch;
             $patient = $appointment->patient;
-            $doctor = $appointment->doctor;
+            $doctor = Doctor::visibleInRole($request->user()->currentRole())
+                ->find($appointment->doctor_id);
         } else {
             $appointment->id = 0;
             $appointment->date = $request->date;
@@ -229,7 +230,8 @@ class AppointmentController extends Controller
             }
 
             if ($request->has('doctor_id')) {
-                $doctor = Doctor::findOrFail($request->doctor_id);
+                $doctor = Doctor::visibleInRole($request->user()->currentRole())
+                    ->findOrFail($request->doctor_id);
             }
         }
         $appointment_status = Helper::getAppointmentStatusForSelect();
@@ -254,7 +256,23 @@ class AppointmentController extends Controller
         $rules = [
             'id' => ['required', 'numeric'],
             'patient' => ['required', 'numeric'],
-            'doctor' => ['required', 'numeric'],
+            'doctor' => [
+                'required',
+                'numeric',
+                \Illuminate\Validation\Rule::exists('doctors', 'id')->where(function ($query) {
+                    $query->where(function ($doctorQuery) {
+                        $role = auth()->user()->currentRole();
+                        $doctorQuery->where('is_shared', true);
+                        if ($role) {
+                            $doctorQuery->orWhereIn('id', function ($roleDoctorQuery) use ($role) {
+                                $roleDoctorQuery->select('doctor_id')
+                                    ->from('doctor_role')
+                                    ->where('role_id', $role->id);
+                            });
+                        }
+                    });
+                }),
+            ],
             'date' => ['required'],
             'start_time' => ['required'],
             'status' => ['required'],

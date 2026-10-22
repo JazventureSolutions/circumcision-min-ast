@@ -4,7 +4,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Helpers\ReminderHelper;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SlotController;
@@ -45,23 +44,13 @@ use App\Http\Controllers\BotoxFaceMapPointController;
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::post('/assign-role/{user}', [RoleController::class, 'assignRole'])->name('assign-role');
+    Route::post('/sync-templates', [AdminController::class, 'sync'])->name('admin.sync-templates');
 });
 
-Route::post('/assign-role/{user}', [RoleController::class, 'assignRole']);
-
-Route::get('test_cache', function () {
-    dd("test is cleared");
-});
-Route::get('clear_cache', function () {
-
-    \Artisan::call('migrate --path=/database/migrations/2022_10_09_170938_create_slots_table.php');
-    \Artisan::call('migrate --path=/database/migrations/2022_10_14_062621_add_status_column_in_slots.php');
-    \Artisan::call('migrate --path=/database/migrations/2022_10_14_140159_add_slot_id_column_in_appointments_table.php');
-    \Artisan::call('migrate --path=/database/migrations/2022_10_21_144033_add_branch_id_column_in_appointments_table.php');
-
-    dd("Cache is cleared");
-});
-Route::get('test-send-sms', [HomeController::class, 'testSendSMS'])->name('test.send-sms');
+Route::post('/active-role', [RoleController::class, 'switchActiveRole'])
+    ->middleware('auth')
+    ->name('role.switch');
 
 Route::get('/r/{unique_key}', [PatientRegisterLinkController::class, 'register'])->name('patient-register.link');
 Route::post('/r/{unique_key}', [PatientRegisterLinkController::class, 'postRegister'])->name('patient-register.register');
@@ -69,19 +58,16 @@ Route::get('/rp/{unique_key}', [RemoteParentSignatureController::class, 'signatu
 Route::post('/postsignature', [RemoteParentSignatureController::class, 'postsignature'])->name('remote-parent-signature.postsignature');
 Route::get('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::class, 'register'])->name('cosmetic-medical.link');
 Route::post('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::class, 'postRegister'])->name('cosmetic-medical.register');
-Route::prefix('messages')->group(function () {
-    Route::get('/patient-register', [MessageController::class, 'patientRegister'])->name('messages.patient-register');
-    Route::get('/appointment-reminder', [MessageController::class, 'appointmentReminder'])->name('messages.appointment-reminder');
-    Route::get('/appointment-arranged', [MessageController::class, 'appointmentArranged'])->name('messages.appointment-arranged');
-    Route::get('/appointment-deposit', [MessageController::class, 'appointmentDeposit'])->name('messages.appointment-deposit');
-    Route::get('/appointment-canceled', [MessageController::class, 'appointmentCanceled'])->name('messages.appointment-canceled');
-    Route::get('/appointment-completed', [MessageController::class, 'appointmentCompleted'])->name('messages.appointment-completed');
-});
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('database-backup', function () {
-        return Artisan::call('database:backup');
+    Route::prefix('messages')->group(function () {
+        Route::get('/patient-register', [MessageController::class, 'patientRegister'])->name('messages.patient-register');
+        Route::get('/appointment-reminder', [MessageController::class, 'appointmentReminder'])->name('messages.appointment-reminder');
+        Route::get('/appointment-arranged', [MessageController::class, 'appointmentArranged'])->name('messages.appointment-arranged');
+        Route::get('/appointment-deposit', [MessageController::class, 'appointmentDeposit'])->name('messages.appointment-deposit');
+        Route::get('/appointment-canceled', [MessageController::class, 'appointmentCanceled'])->name('messages.appointment-canceled');
+        Route::get('/appointment-completed', [MessageController::class, 'appointmentCompleted'])->name('messages.appointment-completed');
     });
 
     Route::get('/report-preview', [ReportController::class, 'preview'])->name('report-preview');
@@ -265,40 +251,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/add', [RemoteParentSignatureController::class, 'show'])->name('remote-parent-signature.add');
         Route::get('/{id}/edit', [RemoteParentSignatureController::class, 'show'])->name('remote-parent-signature.edit');
         Route::post('/store', [RemoteParentSignatureController::class, 'store'])->name('remote-parent-signature.store');
-    });
-    Route::get('/clear-cache', function () {
-        $exitCode = Artisan::call('cache:clear');
-        return '<h1>Cache facade value cleared</h1>';
-    });
-
-    //Reoptimized class loader:
-    Route::get('/optimize', function () {
-        $exitCode = Artisan::call('optimize');
-        return '<h1>Reoptimized class loader</h1>';
-    });
-
-    //Route cache:
-    Route::get('/route-cache', function () {
-        $exitCode = Artisan::call('route:cache');
-        return '<h1>Routes cached</h1>';
-    });
-
-    //Clear Route cache:
-    Route::get('/route-clear', function () {
-        $exitCode = Artisan::call('route:clear');
-        return '<h1>Route cache cleared</h1>';
-    });
-
-    //Clear View cache:
-    Route::get('/view-clear', function () {
-        $exitCode = Artisan::call('view:clear');
-        return '<h1>View cache cleared</h1>';
-    });
-
-    //Clear Config cache:
-    Route::get('/config-cache', function () {
-        $exitCode = Artisan::call('config:cache');
-        return '<h1>Clear Config cleared</h1>';
     });
     Route::prefix('face-map-points')->group(function () {
         Route::get('/', [FaceMapPointController::class, 'index'])->name('face-map-points.index');

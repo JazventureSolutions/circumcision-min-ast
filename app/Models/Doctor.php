@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Doctor extends Model
 {
@@ -12,6 +13,31 @@ class Doctor extends Model
      * @var array
      */
     protected $guarded = [];
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'doctor_role', 'doctor_id', 'role_id');
+    }
+
+    public function scopeVisibleInRole(Builder $query, $role): Builder
+    {
+        if (strtolower((string) data_get($role, 'name', '')) === 'admin') {
+            return $query;
+        }
+
+        $roleId = data_get($role, 'id');
+
+        return $query->where(function (Builder $doctorQuery) use ($roleId) {
+            $doctorQuery->where('is_shared', true);
+
+            if ($roleId) {
+                $doctorQuery->orWhereHas('roles', function (Builder $roleQuery) use ($roleId) {
+                    $roleQuery->where('roles.id', $roleId);
+                });
+
+            }
+        });
+    }
 
     public function getEditRouteAttribute()
     {

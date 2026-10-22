@@ -123,11 +123,18 @@ class BulkGenerateReportPdfsCommand extends Command
                 if ($useDirect && $reportPdfService) {
                     try {
                         $pdfData = $reportPdfService->generate($report);
-                        $report->update([
+                        $updates = [
                             'filename' => $pdfData['filename'],
                             'file_url' => $pdfData['file_url'],
                             'sharepoint_url' => $pdfData['sharepoint_url'] ?? null,
-                        ]);
+                        ];
+
+                        if (! empty($pdfData['sharepoint_html_url'])) {
+                            $updates['sharepoint_html_url'] = $pdfData['sharepoint_html_url'];
+                            $updates['html'] = '';
+                        }
+
+                        $report->update($updates);
                         $processed++;
                     } catch (\Throwable $exception) {
                         $failed++;

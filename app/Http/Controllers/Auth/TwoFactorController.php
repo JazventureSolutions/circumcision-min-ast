@@ -23,11 +23,17 @@ class TwoFactorController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'code' => 'required|string',
+            'code' => ['required', 'regex:/^\d{6}$/'],
         ]);
 
         $userId = $request->session()->get('2fa:user:id');
-        $remember = $request->session()->pull('2fa:remember', false);
+        $pendingAt = $request->session()->get('2fa:pending_at');
+        $remember = $request->session()->get('2fa:remember', false);
+
+        if (! $userId || ! $pendingAt || now()->timestamp - (int) $pendingAt > 300) {
+            $request->session()->forget(['2fa:user:id', '2fa:remember', '2fa:pending_at']);
+            return redirect()->route('login')->withErrors(['email' => 'Your verification attempt expired. Please sign in again.']);
+        }
 
         $user = User::find($userId);
 
@@ -36,9 +42,9 @@ class TwoFactorController extends Controller
         }
 
         Auth::login($user, $remember);
-        $request->session()->forget('2fa:user:id');
-        $request->session()->forget('2fa:remember');
         $request->session()->regenerate();
+        $request->session()->put('mfa:verified:user:id', $user->id);
+        $request->session()->forget(['2fa:user:id', '2fa:remember', '2fa:pending_at']);
 
         return redirect()->intended(RouteServiceProvider::HOME);
     }
@@ -132,7 +138,17 @@ class TwoFactorController extends Controller
 
     public function disable(Request $request)
     {
+        $validated = $request->validate([
+            'code' => ['required', 'regex:/^\d{6}$/'],
+        ]);
+
         $user = $request->user();
+
+        if (! $user->two_factor_enabled || ! $user->two_factor_secret
+            || ! TotpHelper::verifyCode($user->two_factor_secret, $validated['code'])) {
+            return back()->withErrors(['code' => 'The provided authentication code is invalid.']);
+        }
+
         $user->two_factor_enabled = false;
         $user->two_factor_secret = null;
         $user->save();

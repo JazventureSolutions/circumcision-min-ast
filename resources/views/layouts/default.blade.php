@@ -20,7 +20,159 @@
     <!--end::Layout Themes-->
     <link rel="shortcut icon" href="{{ url('/') }}/favicon.ico" />
 
+    @php
+        $activeRole = Auth::user()->currentRole();
+        $activeRoleName = \Illuminate\Support\Str::of($activeRole->name ?? 'Default role')
+            ->replace(['_', '-'], ' ')
+            ->title();
+        $roleThemes = config('role_themes');
+        $fallbackThemes = $roleThemes['fallbacks'];
+        $roleTheme = $roleThemes[\Illuminate\Support\Str::slug($activeRole->name ?? '')]
+            ?? $fallbackThemes[($activeRole->id ?? 0) % count($fallbackThemes)]
+            ?? $roleThemes['default'];
+    @endphp
+
     <style>
+        body {
+            --role-primary: {{ $roleTheme['primary'] }};
+            --role-soft: {{ $roleTheme['soft'] }};
+        }
+
+        #kt_header_mobile,
+        #kt_subheader,
+        .aside .aside-primary {
+            border-top: 4px solid var(--role-primary);
+        }
+
+        #kt_subheader {
+            background-color: var(--role-soft);
+        }
+
+        .aside .aside-primary,
+        .aside .aside-brand,
+        .aside .aside-footer {
+            background-color: var(--role-soft) !important;
+        }
+
+        .active-role-rail-label {
+            max-width: 72px;
+            margin-top: 0.65rem;
+            padding: 0.3rem 0.35rem;
+            color: var(--role-primary);
+            background-color: #fff;
+            border-radius: 3px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .aside .nav-link.active,
+        .aside .nav-link:hover,
+        .aside .aside-toggle {
+            color: #fff !important;
+            background-color: var(--role-primary) !important;
+        }
+
+        .aside-secondary .list-item.active,
+        .aside-secondary .list-item:hover {
+            background-color: var(--role-soft) !important;
+            border-left: 4px solid var(--role-primary);
+        }
+
+        .aside-secondary .list-item.active a,
+        .aside-secondary .list-item:hover a,
+        .aside-secondary .list-item.active .font-size-h6,
+        .aside-secondary .list-item:hover .font-size-h6,
+        .nav-tabs .nav-link.active {
+            color: var(--role-primary) !important;
+            border-color: var(--role-primary) !important;
+        }
+
+        .aside-secondary .list-item.active .symbol-label,
+        .aside-secondary .list-item:hover .symbol-label {
+            background-color: #fff !important;
+        }
+
+        .card.card-custom > .card-header {
+            border-top: 2px solid var(--role-primary);
+        }
+
+        body .btn-primary,
+        body .label-primary,
+        body .badge-primary,
+        body .bg-primary,
+        body .progress-bar {
+            background-color: {{ $roleTheme['primary'] }};
+            border-color: {{ $roleTheme['primary'] }};
+        }
+
+        body .btn-light-primary,
+        body .label-light-primary {
+            color: {{ $roleTheme['primary'] }};
+            background-color: {{ $roleTheme['soft'] }};
+            border-color: {{ $roleTheme['soft'] }};
+        }
+
+        .role-workspace-banner {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            padding: 1.75rem 2rem;
+            color: #fff;
+            background: var(--role-primary);
+            border-radius: 4px;
+            box-shadow: 0 8px 24px {{ $roleTheme['soft'] }};
+        }
+
+        .role-workspace-banner::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 100%;
+            content: '';
+            background-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .role-workspace-banner__eyebrow {
+            display: block;
+            margin-bottom: 0.45rem;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .role-workspace-banner__name {
+            margin: 0;
+            color: #fff;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        body .text-primary {
+            color: {{ $roleTheme['primary'] }} !important;
+        }
+
+        body .btn-outline-primary {
+            color: var(--role-primary);
+            border-color: var(--role-primary);
+        }
+
+        body .btn-outline-primary:hover {
+            color: #fff;
+            background-color: var(--role-primary);
+        }
+
+        body .form-control:focus,
+        body .custom-select:focus,
+        body .page-item.active .page-link {
+            border-color: var(--role-primary);
+            box-shadow: 0 0 0 0.15rem {{ $roleTheme['soft'] }};
+        }
+
         .aside .aside-primary {
             width: 80px !important;
         }
@@ -44,7 +196,7 @@
 <!--end::Head-->
 <!--begin::Body-->
 
-<body id="kt_body"
+<body id="kt_body" data-active-role="{{ \Illuminate\Support\Str::slug($activeRole->name ?? '') }}"
     class="header-mobile-fixed subheader-enabled aside-enabled aside-fixed aside-secondary-enabled page-loading">
     <!--begin::Main-->
     <!--begin::Header Mobile-->
@@ -80,7 +232,7 @@
                             <!--begin::Details-->
                             <div class="d-flex align-items-center flex-wrap mr-2">
                                 <!--begin::Title-->
-                                <h5 class="text-dark font-weight-bold mt-2 mb-2 mr-5">{{ $title ?? 'Circumcision Clinic' }}</h5>
+                                <h5 class="text-dark font-weight-bold mt-2 mb-2 mr-5">{{ $title ?? $activeRoleName }}</h5>
                                 <!--end::Title-->
                                 <!--begin::Separator-->
                                 <div class="subheader-separator subheader-separator-ver mt-2 mb-2 mr-5 bg-gray-200">
@@ -96,6 +248,31 @@
                             <!--end::Details-->
                             <!--begin::Toolbar-->
                             <div class="d-flex align-items-center">
+                                @php($availableRoles = Auth::user()->roles()->orderBy('name')->get())
+                                @if ($availableRoles->isNotEmpty())
+                                    <div class="dropdown mr-2">
+                                        <button class="btn btn-light-primary btn-sm dropdown-toggle" type="button"
+                                            id="activeRoleDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            {{ $activeRoleName }}
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="activeRoleDropdown">
+                                            @foreach ($availableRoles as $availableRole)
+                                                <form method="POST" action="{{ route('role.switch') }}">
+                                                    @csrf
+                                                    <input type="hidden" name="role_id" value="{{ $availableRole->id }}">
+                                                    <button class="dropdown-item {{ optional($activeRole)->id === $availableRole->id ? 'active' : '' }}"
+                                                        type="submit">
+                                                        {{ \Illuminate\Support\Str::of($availableRole->name)->replace(['_', '-'], ' ')->title() }}
+                                                    </button>
+                                                </form>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <span class="label label-light-primary font-weight-bold mr-2 px-3 py-2">
+                                        {{ $activeRoleName }}
+                                    </span>
+                                @endif
                                 <!--begin::Button-->
                                 <button data-toggle="modal" data-target="#sendReminder"
                                     class="btn btn-light-primary font-weight-bold py-2 px-5 ml-2">Send Reminder SMS</button>
