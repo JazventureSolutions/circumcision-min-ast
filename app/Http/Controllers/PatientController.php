@@ -419,7 +419,8 @@ class PatientController extends Controller
             $patient->update($data);
         } else {
             $patient = Patient::create($data);
-            return redirect()->route('patients.appointments.add', ['patient_id' => $patient->id]);
+            return redirect()->route('patients.appointments.add', ['patient_id' => $patient->id])
+                ->with('success', 'Patient saved. You can now add an appointment.');
         }
 
         if ($patient->approved == "0") {

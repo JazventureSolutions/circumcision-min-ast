@@ -98,8 +98,20 @@
                 <div class="tab-pane {{ old('mode', $mode ?? 'patient') == 'patient' ? 'show active' : '' }}"
                     id="tab_patient" role="tabpanel">
 
-                    <form id="patient_form" class="form" method="POST" action="{{ route('patients.store') }}">
+                    <form id="patient_form" class="form" method="POST" action="{{ route('patients.store') }}" novalidate>
                         @csrf
+
+                        <div id="patient-form-client-errors" class="alert alert-danger d-none" role="alert"></div>
+                        @if ($errors->any())
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Please correct the following before submitting:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
 
                         <input type="hidden" name="id" value="{{ $patient->id ?? 0 }}">
                         {{-- <input type="hidden" name="mode" value="patient"> --}}
@@ -514,7 +526,7 @@
 
                                     <select
                                         class="form-control form-control-lg {{ $errors->has('appoint_type') ? 'is-invalid' : '' }} basic-select2"
-                                        name="appoint_type" placeholder="Appointment Type" required>
+                                        name="appoint_type" placeholder="Appointment Type">
                                         <option value="">Select</option>
                                         @foreach ($AppointmentTypes as $appointtypeKey => $appoint_type)
                                             <option value="{{ $appointtypeKey }}"
@@ -535,7 +547,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Appointment Reason</label>
                                     <textarea name="Appoint_reason"
-                                        class="form-control form-control-lg {{ $errors->has('Appoint_reason') ? 'is-invalid' : '' }}" required>{{ old('Appoint_reason', $patient->Appoint_reason ?? '') }}</textarea>
+                                        class="form-control form-control-lg {{ $errors->has('Appoint_reason') ? 'is-invalid' : '' }}">{{ old('Appoint_reason', $patient->Appoint_reason ?? '') }}</textarea>
 
                                     @if ($errors->has('Appoint_reason'))
                                         <span class=" invalid-feedback">{{ $errors->first('Appoint_reason') }}</span>
@@ -552,13 +564,16 @@
                                 <div class="form-group">
                                     <label class="form-label">Appointment City</label>
 
+                                    @php
+                                        $selectedBranchId = old('branch_id') ?: ($patient->branch_id ?: Auth::user()->branch_id);
+                                    @endphp
                                     <select
-                                        class="form-control form-control-lg {{ $errors->has('type') ? 'is-invalid' : '' }} basic-select2"
+                                        class="form-control form-control-lg {{ $errors->has('branch_id') ? 'is-invalid' : '' }} basic-select2"
                                         name="branch_id" placeholder="Appointment City">
                                         <option value="">Select</option>
                                         @foreach ($branches as $branchKey => $branch)
                                             <option value="{{ $branchKey }}"
-                                                {{ (old('branch_id', $patient->branch_id) ?? Auth::user()->branch_id) == $branchKey ? 'selected' : '' }}>
+                                                {{ $selectedBranchId == $branchKey ? 'selected' : '' }}>
                                                 {{ $branch }}</option>
                                         @endforeach
                                     </select>
@@ -624,6 +639,53 @@
             var patient_id = $('#tab_appointments').data('patient_id');
             fetchAppointments(patient_id, APPOINTMENTS_PAGE);
             setTimeout(onUserTypeChange, 100);
+
+            $('#patient_form').on('submit', function (event) {
+                var errors = [];
+                var $name = $('[name="name"]');
+                var $appointmentType = $('[name="appoint_type"]');
+                var $appointmentReason = $('[name="Appoint_reason"]');
+                var $branch = $('[name="branch_id"]');
+
+                $name.removeClass('is-invalid');
+                $appointmentType.removeClass('is-invalid');
+                $appointmentReason.removeClass('is-invalid');
+                $branch.removeClass('is-invalid');
+
+                if (!$name.val().trim()) {
+                    errors.push('Patient name is required.');
+                    $name.addClass('is-invalid');
+                }
+                if (!$appointmentType.val()) {
+                    errors.push('Select an appointment type.');
+                    $appointmentType.addClass('is-invalid');
+                }
+                if (!$appointmentReason.val().trim()) {
+                    errors.push('Appointment reason is required.');
+                    $appointmentReason.addClass('is-invalid');
+                }
+                if (!$branch.val()) {
+                    errors.push('Select an appointment city.');
+                    $branch.addClass('is-invalid');
+                }
+
+                if (errors.length) {
+                    event.preventDefault();
+                    $('#patient-form-client-errors')
+                        .removeClass('d-none')
+                        .html('<strong>Please complete these fields:</strong><ul class="mb-0">' +
+                            errors.map(function (error) { return '<li>' + error + '</li>'; }).join('') +
+                            '</ul>');
+                    KTUtil.scrollTop();
+                    if (!$appointmentType.val()) {
+                        $appointmentType.select2('open');
+                    } else if (!$branch.val()) {
+                        $branch.select2('open');
+                    }
+                } else {
+                    $('#patient-form-client-errors').addClass('d-none').empty();
+                }
+            });
         });
 
         function onUserTypeChange() {
@@ -633,60 +695,36 @@
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
             case 'minor_surgery_ms':
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
             case 'aesthetics_botox':
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
             case 'aesthetics_filler':
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
             case 'aesthetics_mesotherapy':
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
             case 'minor_surgery_vasc':
                 $('.hide-adult').hide();
                 $('.hide-old_boy').show();
                 $('.hide-new_born').show();
-                //
-                $('.hide-adult input').removeAttr('required');
-                $('.hide-old_boy input').attr('required', true);
-                $('.hide-new_born input').attr('required', true);
                 break;
 
                 default:

@@ -58,6 +58,9 @@ Route::get('/rp/{unique_key}', [RemoteParentSignatureController::class, 'signatu
 Route::post('/postsignature', [RemoteParentSignatureController::class, 'postsignature'])->name('remote-parent-signature.postsignature');
 Route::get('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::class, 'register'])->name('cosmetic-medical.link');
 Route::post('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::class, 'postRegister'])->name('cosmetic-medical.register');
+Route::get('/messages/appointment-deposit', [MessageController::class, 'appointmentDeposit'])
+    ->name('messages.appointment-deposit');
+Route::get('/messages/appointment-depoist', [MessageController::class, 'appointmentDeposit']);
 
 Route::middleware(['auth'])->group(function () {
 
@@ -65,7 +68,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/patient-register', [MessageController::class, 'patientRegister'])->name('messages.patient-register');
         Route::get('/appointment-reminder', [MessageController::class, 'appointmentReminder'])->name('messages.appointment-reminder');
         Route::get('/appointment-arranged', [MessageController::class, 'appointmentArranged'])->name('messages.appointment-arranged');
-        Route::get('/appointment-deposit', [MessageController::class, 'appointmentDeposit'])->name('messages.appointment-deposit');
         Route::get('/appointment-canceled', [MessageController::class, 'appointmentCanceled'])->name('messages.appointment-canceled');
         Route::get('/appointment-completed', [MessageController::class, 'appointmentCompleted'])->name('messages.appointment-completed');
     });

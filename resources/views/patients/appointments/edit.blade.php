@@ -2,6 +2,10 @@
 
 @section('content')
 
+@if (session('success'))
+    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+@endif
+
 <div class="card card-custom">
     <!--begin::Card body-->
     <div class="card-body">
