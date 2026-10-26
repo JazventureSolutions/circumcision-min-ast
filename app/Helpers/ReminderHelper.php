@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\Appointment;
+use App\Helpers\AppointmentMessageLink;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -41,7 +42,7 @@ class ReminderHelper
 
             $is_pre_assessment = $appointment->appointment_type == "pre_assessment_appointment";
 
-            $link = route('messages.appointment-reminder', ['id' => $appointment->id]);
+            $link = AppointmentMessageLink::temporary('messages.appointment-reminder', $appointment);
             $message = "Request for " . ($is_pre_assessment ? "pre assessment" : "circumcision") . " appointment confirmation: Please Confirm by a text message. No response will result in cancellation. {$link}";
 
             try {

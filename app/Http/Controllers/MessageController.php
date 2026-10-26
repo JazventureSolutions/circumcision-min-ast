@@ -25,12 +25,8 @@ class MessageController extends Controller
         $appointment = Appointment::select('appointments.*')
             ->where('appointments.id', $request->id)
             ->with('patient')
-            ->whereHas('patient', function ($query) {
-                if ($roleId = optional(auth()->user())->currentRoleId()) {
-                    $query->where('role_id', $roleId);
-                }
-            })
-            ->first();
+            ->whereHas('patient')
+            ->firstOrFail();
         $patient = $appointment->patient;
         $parents_away = '';
         if ($patient->remote_patent_status == 1) {
@@ -68,7 +64,8 @@ class MessageController extends Controller
         $appointment = Appointment::select('appointments.*')
             ->where('appointments.id', $request->id)
             ->with('patient')
-            ->first();
+            ->whereHas('patient')
+            ->firstOrFail();
         $patient = $appointment->patient;
 
         $parents_away = '';

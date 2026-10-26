@@ -61,15 +61,23 @@ Route::post('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::c
 Route::get('/messages/appointment-deposit', [MessageController::class, 'appointmentDeposit'])
     ->name('messages.appointment-deposit');
 Route::get('/messages/appointment-depoist', [MessageController::class, 'appointmentDeposit']);
+Route::get('/messages/appointment-reminder', [MessageController::class, 'appointmentReminder'])
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-reminder');
+Route::get('/messages/appointment-arranged', [MessageController::class, 'appointmentArranged'])
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-arranged');
+Route::get('/messages/appointment-completed', [MessageController::class, 'appointmentCompleted'])
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-completed');
+Route::get('/messages/appointment-canceled', [MessageController::class, 'appointmentCanceled'])
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-canceled');
 
 Route::middleware(['auth'])->group(function () {
 
     Route::prefix('messages')->group(function () {
         Route::get('/patient-register', [MessageController::class, 'patientRegister'])->name('messages.patient-register');
-        Route::get('/appointment-reminder', [MessageController::class, 'appointmentReminder'])->name('messages.appointment-reminder');
-        Route::get('/appointment-arranged', [MessageController::class, 'appointmentArranged'])->name('messages.appointment-arranged');
-        Route::get('/appointment-canceled', [MessageController::class, 'appointmentCanceled'])->name('messages.appointment-canceled');
-        Route::get('/appointment-completed', [MessageController::class, 'appointmentCompleted'])->name('messages.appointment-completed');
     });
 
     Route::get('/report-preview', [ReportController::class, 'preview'])->name('report-preview');

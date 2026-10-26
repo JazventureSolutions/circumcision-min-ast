@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use App\Helpers\AppointmentMessageLink;
 use App\Jobs\UploadReportToSharePointJob;
 use App\Models\Appointment;
 use App\Models\Slot;
@@ -535,7 +536,7 @@ class AppointmentController extends Controller
 
             $is_pre_assessment = $appointment->appointment_type == "pre_assessment_appointment";
 
-            $link = route('messages.appointment-arranged', ['id' => $appointment->id]);
+            $link = AppointmentMessageLink::temporary('messages.appointment-arranged', $appointment);
             $message = "Circumcision " . ($is_pre_assessment ? "Pre assessment " : "") . "appointment: Please use the following link to see appointment details. {$link}";
 
             if (Helper::sendSMS($message, $patient->cell_number)) {
