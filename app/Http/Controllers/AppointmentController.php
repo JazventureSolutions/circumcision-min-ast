@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,8 @@ class AppointmentController extends Controller
 
         $used_appointment_times = Appointment::select('appointments.start_time')
             ->join('patients', 'appointments.patient_id', '=', 'patients.id')
+            ->whereNull('appointments.deleted_at')
+            ->whereNull('patients.deleted_at')
             ->where('patients.branch_id', $branch_id)
             ->where('date', Carbon::rawCreateFromFormat('d.m.Y', $appointment_date)->toDateString())
             ->where('patients.role_id',auth()->user()->currentRoleId());
@@ -401,17 +404,31 @@ class AppointmentController extends Controller
 
         $request->validate($rules);
 
-        $appointment = Appointment::find($request->appointment_id);
+        $appointment = Appointment::whereHas('patient', function ($query) {
+            $query->where('role_id', auth()->user()->currentRoleId());
+        })->findOrFail($request->appointment_id);
 
-        if ($appointment == null) {
-            abort(404);
-        }
-        $slot = Slot::where('id', $appointment->slot_id)->first();
-        $slot->delete();
-        $appointment->additional_reports()->delete();
-        $appointment->delete();
+        DB::transaction(function () use ($appointment) {
+            $slotId = $appointment->slot_id;
+            $appointment->additional_reports()->get()->each->delete();
+            optional($appointment->audit)->delete();
+            optional($appointment->feedback)->delete();
+            $appointment->delete();
 
-        return redirect()->back();
+            if ($slotId) {
+                $slot = Slot::find($slotId);
+                $stillBooked = Appointment::where('slot_id', $slotId)
+                    ->whereHas('patient')
+                    ->exists();
+
+                if ($slot && ! $stillBooked) {
+                    $slot->status = 'available';
+                    $slot->save();
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Appointment moved to deleted records.');
     }
 
     public function sendAppointmentEmailWithAttachments(Request $request)

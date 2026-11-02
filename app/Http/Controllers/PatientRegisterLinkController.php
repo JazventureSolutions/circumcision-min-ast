@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use App\Helpers\PublicLink;
 use App\Models\Patient;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -27,6 +28,14 @@ class PatientRegisterLinkController extends Controller
             abort(404);
         }
 
+        if (! request()->route('role') && PublicLink::enabled()) {
+            return redirect()->away(PublicLink::make(
+                'patient-register.link',
+                ['unique_key' => $unique_key],
+                $patient_inq->role_id
+            ));
+        }
+
         if ($patient_inq->patient_id != '0') {
             return view('error', ['title' => "Link Used", 'code' => 'Sorry!', 'message' => 'This link has already been used.', 'iframe' => '<iframe src="https://embed.lottiefiles.com/animation/75406" style="width:100%;height:80vh;"></iframe>']);
         }
@@ -35,13 +44,8 @@ class PatientRegisterLinkController extends Controller
         $patient = new Patient();
         $patient->id = 0;
 
-        if(auth()->user() == null){
-            $patient_types = Helper::getPatientTypesForSelectWithoutAuth($patient_inq->role_id);
-            $role = Role::find($patient_inq->role_id);
-        }else{
-            $patient_types = Helper::getPatientTypesForSelectWithoutAuth(auth()->user()->currentRoleId());
-            $role = Role::find(auth()->user()->currentRoleId());
-        }
+        $patient_types = Helper::getPatientTypesForSelectWithoutAuth($patient_inq->role_id);
+        $role = Role::find($patient_inq->role_id);
         $branches = Helper::getCompanyBranchesForSelect(1);
         $AppointmentTypes = Helper::getAppointmentTypes();
 
@@ -74,6 +78,10 @@ class PatientRegisterLinkController extends Controller
 
         $request->validate($rules);
 
+        $patientType = PatientType::where('value', $request->type)
+            ->where('role_id', $patient_inq->role_id)
+            ->firstOrFail();
+
         $patient = new Patient();
 
         $data = [
@@ -95,7 +103,7 @@ class PatientRegisterLinkController extends Controller
             'next_kin_phone' => $request->next_kin_phone,
             'gp_details' => $request->gp_details,
             'type' => $request->type,
-            'role_id' => PatientType::where('value', $request->type)->first()->role_id ?? 1,
+            'role_id' => $patientType->role_id,
             'appoint_type' => $request->appoint_type,
             'Appoint_reason' => $request->Appoint_reason,
             'approved' => $patient->approved ?? "0",

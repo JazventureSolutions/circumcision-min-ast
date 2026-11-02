@@ -348,7 +348,7 @@
                             name="appoint_type" placeholder="Appointment Type">
                             <option value="">Select</option>
                             @foreach ($AppointmentTypes as $appointtypeKey => $appoint_type)
-                            <option value="{{ $appointtypeKey }}" {{ (old('appoint_type', $patient->appoint_type) == $appointtypeKey) ? 'selected' : '' }}>
+                            <option value="{{ $appointtypeKey }}" {{ (old('appoint_type', optional($patient)->appoint_type) == $appointtypeKey) ? 'selected' : '' }}>
                                 {{ $appoint_type }}
                             </option>
                             @endforeach

@@ -16,7 +16,8 @@ trait AppointmentTrait
             /*->whereNotIn('status', array('canceled','did_not_attend')) */
             ->with('patient')->whereHas('patient', function ($query) {
                 $query->where('role_id', auth()->user()->currentRoleId());
-            });
+            })
+            ->whereNull('appointments.deleted_at');
 
         $branch_id = $request->input('branch_id', 0);
         if ($branch_id > 0) {
@@ -62,7 +63,8 @@ trait AppointmentTrait
         ])->whereNotIn('status', array('canceled', 'did_not_attend'))->with('patient')
             ->whereHas('patient', function ($query) {
                 $query->where('role_id', auth()->user()->currentRoleId());
-            });
+            })
+            ->whereNull('appointments.deleted_at');
 
         $branch_id = $request->input('branch_id', 0);
         if ($branch_id > 0) {

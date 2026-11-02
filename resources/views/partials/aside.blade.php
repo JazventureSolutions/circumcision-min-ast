@@ -1128,6 +1128,7 @@
                         <!--end::Item-->
 
                         <!--begin::Item-->
+                        @if (auth()->user()->hasRole('admin'))
                         <div
                             class="list-item hoverable p-2 p-lg-3 mb-2 {{ Route::is('settings.team') || Route::is('settings.team.*') ? 'active' : '' }}">
                             <a href="{{ route('settings.team') }}" class="d-flex align-items-center">
@@ -1157,7 +1158,21 @@
                                 <!--begin::End-->
                             </a>
                         </div>
+                        @endif
                         <!--end::Item-->
+
+                        @if (auth()->user()->hasRole('admin'))
+                        <div class="list-item hoverable p-2 p-lg-3 mb-2 {{ Route::is('admin.patients.deletion') ? 'active' : '' }}">
+                            <a href="{{ route('admin.patients.deletion') }}" class="d-flex align-items-center">
+                                <div class="mr-4 symbol symbol-40 symbol-light">
+                                    <span class="symbol-label bg-hover-white"><i class="fas fa-user-minus"></i></span>
+                                </div>
+                                <div class="mr-2 d-flex flex-column flex-grow-1">
+                                    <span class="mb-0 text-dark-75 font-size-h6">Patient deletion</span>
+                                </div>
+                            </a>
+                        </div>
+                        @endif
 
                         <!--begin::Item-->
                         <div

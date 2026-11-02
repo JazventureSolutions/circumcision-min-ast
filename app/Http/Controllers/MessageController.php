@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\PublicLink;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\PatientInquiry;
@@ -28,6 +29,15 @@ class MessageController extends Controller
             ->whereHas('patient')
             ->firstOrFail();
         $patient = $appointment->patient;
+
+        if (! $request->route('role') && PublicLink::enabled()) {
+            return redirect()->away(PublicLink::make(
+                'messages.appointment-reminder',
+                ['id' => $appointment->id],
+                $patient->role_id
+            ));
+        }
+
         $parents_away = '';
         if ($patient->remote_patent_status == 1) {
             $parents_away = 'Thank you for booking your sons circumcision with Dr Khan. It is a regulatory requirement that both parents sign the consent form. As dad is away, there are a few things that you will need to do:
@@ -67,6 +77,14 @@ class MessageController extends Controller
             ->whereHas('patient')
             ->firstOrFail();
         $patient = $appointment->patient;
+
+        if (! $request->route('role') && PublicLink::enabled()) {
+            return redirect()->away(PublicLink::make(
+                'messages.appointment-arranged',
+                ['id' => $appointment->id],
+                $patient->role_id
+            ));
+        }
 
         $parents_away = '';
         if ($patient->remote_patent_status == 1) {
@@ -136,6 +154,14 @@ class MessageController extends Controller
     public function appointmentCompleted(Request $request)
     {
         $patient = Patient::findOrFail($request->id);
+
+        if (! $request->route('role') && PublicLink::enabled()) {
+            return redirect()->away(PublicLink::make(
+                'messages.appointment-completed',
+                ['id' => $patient->id],
+                $patient->role_id
+            ));
+        }
 
         return view('messages.appointment_completed', [
             'title' => config('app.name'),

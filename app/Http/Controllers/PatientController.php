@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use App\Helpers\PublicLink;
 use App\Models\CosmeticPatientForm;
 use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\PatientType;
+use App\Services\PatientDeletionService;
 use Carbon\Carbon;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Auth;
@@ -74,9 +76,17 @@ class PatientController extends Controller
         if ($request->ajax()) {
 
             $patients = Patient::select(['patients.*', 'appointments.followup_date', 'appointments.start_time', 'appointments.status', 'appointments.followup_status', 'appointments.date'])
-                ->leftJoin('appointments', 'patients.id', '=', 'appointments.patient_id')
-                ->leftJoin('audits', 'patients.id', '=', 'audits.patient_id')
-                ->with(['appointments', 'audit'])->where('patients.role_id', auth()->user()->currentRoleId());
+                ->leftJoin('appointments', function ($join) {
+                    $join->on('patients.id', '=', 'appointments.patient_id')
+                        ->whereNull('appointments.deleted_at');
+                })
+                ->leftJoin('audits', function ($join) {
+                    $join->on('patients.id', '=', 'audits.patient_id')
+                        ->whereNull('audits.deleted_at');
+                })
+                ->with(['appointments', 'audit'])
+                ->whereNull('patients.deleted_at')
+                ->where('patients.role_id', auth()->user()->currentRoleId());
 
             if (Route::currentRouteName() == 'patients') {
                 $patients = $patients->where('approved', "1")
@@ -432,80 +442,89 @@ class PatientController extends Controller
 
     public function delete(Request $request)
     {
-        $patient = Patient::find($request->id);
+        $request->validate(['id' => ['required', 'integer']]);
 
-        if ($patient == null) {
-            abort(404);
-        }
+        $patient = Patient::where('role_id', auth()->user()->currentRoleId())
+            ->findOrFail($request->id);
 
-        $patient->additional_reports()->delete();
+        app(PatientDeletionService::class)->softDelete($patient);
 
-        $report_path = config('constants.storage_paths.reports', '');
-        $report_path = str_replace('{patient_id}', $patient->id, $report_path);
-        $report_path = str_replace('{filename}', '', $report_path);
+        return redirect()->back()->with('success', 'Patient and related records moved to deleted records.');
+    }
 
-        Storage::disk('reports')->deleteDirectory($report_path);
+    public function deletionPage(Request $request)
+    {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
 
-        $patient->appointments()->delete();
-        $patient->reports()->delete();
-        $patient->inquiry()->delete();
-        $patient->delete();
+        $search = trim((string) $request->input('q'));
+        $patients = Patient::query()
+            ->with(['branch', 'role'])
+            ->withCount(['appointments', 'reports'])
+            ->where(function ($query) use ($search) {
+                if ($search === '') {
+                    $query->whereRaw('1 = 0');
+                    return;
+                }
 
-        return redirect()->back();
+                $query->where(function ($patientQuery) use ($search) {
+                    if (ctype_digit($search)) {
+                        $patientQuery->where('patients.id', (int) $search)
+                            ->orWhere('patients.name', 'LIKE', '%' . $search . '%');
+                    } else {
+                        $patientQuery->where('patients.name', 'LIKE', '%' . $search . '%');
+                    }
+                });
+            })
+            ->orderByDesc('patients.id')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.patients.deletion', [
+            'title' => 'Patient deletion',
+            'patients' => $patients,
+            'search' => $search,
+        ]);
+    }
+
+    public function adminDelete(Request $request, $patientId)
+    {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
+        $patient = Patient::findOrFail($patientId);
+
+        app(PatientDeletionService::class)->softDelete($patient);
+
+        return redirect()->route('admin.patients.deletion', ['q' => $request->input('q')])
+            ->with('success', 'Patient and related clinical records were soft-deleted. The appointment slots are available when no active booking uses them.');
     }
 
     public function sendPaymentMessage(Request $request)
     {
-        $patient = Patient::findOrFail($request->patient_id);
-
-        if ($patient == null) {
-            abort(404);
-        }
-
+        $patient = Patient::where('role_id', auth()->user()->currentRoleId())
+            ->findOrFail($request->patient_id);
         $message = config('constants.messages.appointment_deposit', '');
 
-        // Email
         if (config('constants.config.enable_email') && $patient->email) {
-            Mail::send([], [], function (Message $m) use ($patient, $message) {
-                //$m->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-                $m->from(config('mail.from.address'), config('mail.from.name'));
-                $m->to($patient->email)
-                    // ->bcc(config('mail.bcc_address'))
+            Mail::send([], [], function (Message $mail) use ($patient, $message) {
+                $mail->from(config('mail.from.address'), config('mail.from.name'))
+                    ->to($patient->email)
                     ->subject('Please make a deposit')
                     ->setBody($message);
-
-                Log::channel('email')->info(json_encode(
-                    [
-                        'from' => [env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME')],
-                        'to' => $patient->email,
-                        'bcc' => '',
-                        'subject' => 'Please make a deposit',
-                        // 'body' => $message
-                    ]
-                ));
             });
         }
 
-        // SMS
-        if (config('constants.config.enable_sms')) {
-
-            $link = route('messages.appointment-deposit');
-            $message = "Please use the following link to pay the deposit of £50.00 (NON REFUNDABLE). {$link}";
-
-            if (Helper::sendSMS($message, $patient->cell_number)) {
-                $patient->payment_message_sent = Carbon::now()->addHour()->toDateTimeString();
+        if (config('constants.config.enable_sms') && $patient->cell_number) {
+            $link = PublicLink::make('messages.appointment-deposit', [], $patient->role_id);
+            $sms = "Please use the following link to pay the deposit of £50.00 (NON REFUNDABLE). {$link}";
+            if (Helper::sendSMS($sms, $patient->cell_number)) {
+                $patient->payment_message_sent = Carbon::now()->toDateTimeString();
             }
         }
 
         $patient->save();
 
-        if ($request->ajax()) {
-            return response()->json([
-                'status' => 'success',
-            ]);
-        }
-
-        return redirect()->back();
+        return $request->ajax()
+            ? response()->json(['status' => 'success'])
+            : redirect()->back()->with('success', 'Deposit message sent.');
     }
 
     public function similar(Request $request)
@@ -570,12 +589,19 @@ class PatientController extends Controller
         if ($request->ajax()) {
 
             $patients = Patient::select(['patients.*', 'appointments.followup_date', 'appointments.start_time', 'appointments.status', 'appointments.followup_status', 'appointments.date'])
-                ->leftJoin('appointments', 'patients.id', '=', 'appointments.patient_id')
-                ->leftJoin('audits', 'patients.id', '=', 'audits.patient_id')
+                ->leftJoin('appointments', function ($join) {
+                    $join->on('patients.id', '=', 'appointments.patient_id')
+                        ->whereNull('appointments.deleted_at');
+                })
+                ->leftJoin('audits', function ($join) {
+                    $join->on('patients.id', '=', 'audits.patient_id')
+                        ->whereNull('audits.deleted_at');
+                })
                 ->with(['appointments', 'audit', 'cosmeticPatientForm'])
                 ->whereHas('cosmeticPatientForm', function ($q) {
                     $q->where('is_approved', 0);
                 })
+                ->whereNull('patients.deleted_at')
                 ->where('patients.role_id', auth()->user()->currentRoleId());
 
             if (Route::currentRouteName() == 'patients') {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use App\Helpers\PublicLink;
 use App\Models\CosmeticPatientForm;
 use App\Models\Patient;
 use Illuminate\Http\Request;
@@ -27,6 +28,14 @@ class CosmeticMedicalPatientRegisterLinkController extends Controller
             abort(404);
         }
 
+        if (! request()->route('role') && PublicLink::enabled()) {
+            return redirect()->away(PublicLink::make(
+                'cosmetic-medical.link',
+                ['unique_key' => $unique_key],
+                $patient_inq->role_id
+            ));
+        }
+
         if ($patient_inq->is_fill != 0) {
             return view('error', ['title' => "Link Used", 'code' => 'Sorry!', 'message' => 'This link has already been used.', 'iframe' => '<iframe src="https://embed.lottiefiles.com/animation/75406" style="width:100%;height:80vh;"></iframe>']);
         }
@@ -35,11 +44,7 @@ class CosmeticMedicalPatientRegisterLinkController extends Controller
         $patient = new Patient();
         $patient->id = 0;
 
-        if (auth()->user() == null) {
-            $patient_types = Helper::getPatientTypesForSelectWithoutAuth($patient_inq->role_id);
-        } else {
-            $patient_types = Helper::getPatientTypesForSelect();
-        }
+        $patient_types = Helper::getPatientTypesForSelectWithoutAuth($patient_inq->role_id);
         $branches = Helper::getCompanyBranchesForSelect(1);
         $AppointmentTypes = Helper::getAppointmentTypes();
 
@@ -166,8 +171,10 @@ class CosmeticMedicalPatientRegisterLinkController extends Controller
                 'patient_inquiries.patient_id',
             ])
                 ->leftJoin('patients', function ($join) {
-                    $join->on('patient_inquiries.patient_id', 'patients.id');
-                })->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
+                    $join->on('patient_inquiries.patient_id', 'patients.id')
+                        ->whereNull('patients.deleted_at');
+                })->whereNull('patient_inquiries.deleted_at')
+                ->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
 
             if ($request->has('branch_id')) {
                 $patient_inqs = $patient_inqs
@@ -271,7 +278,7 @@ class CosmeticMedicalPatientRegisterLinkController extends Controller
             'email' => $request->email,
             'cell_number' => $request->cell_number,
             'remote_patent_status' => $request->remote_patent_status,
-            'role_id' => auth()->user()->currentRoleId() ?? 1,
+                'role_id' => $patient_inq->role_id,
         ];
 
         if ($request->form_type == 'submit') {

@@ -55,6 +55,9 @@ class ReportController extends Controller
             ->join('patients', 'appointments.patient_id', '=', 'patients.id')
             ->join('reports', 'patients.id', '=', 'reports.patient_id')
             ->whereNotNull('appointments.patient_id')
+            ->whereNull('appointments.deleted_at')
+            ->whereNull('patients.deleted_at')
+            ->whereNull('reports.deleted_at')
             ->when(Auth::check() && Auth::user()->branch_id, function ($query) {
                 $query->where('patients.branch_id', Auth::user()->branch_id);
             })
@@ -432,23 +435,6 @@ class ReportController extends Controller
         ])->first();
 
         if ($report) {
-            $service = app(SharePointBackupService::class);
-
-            $template = Template::find($template_id);
-            if ($template) {
-                $slug = Str::slug($template->name ?: 'report');
-
-                if ($report->sharepoint_url) {
-                    $pdfRemotePath = "patient_reports/{$patient_id}/report-{$patient_id}-{$slug}.pdf";
-                    $service->deleteByRemotePath($pdfRemotePath);
-                }
-
-                if ($report->sharepoint_html_url) {
-                    $htmlRemotePath = "patient_reports/{$patient_id}/HTML/report-{$patient_id}-{$slug}.html";
-                    $service->deleteByRemotePath($htmlRemotePath);
-                }
-            }
-
             $report->delete();
         }
 
@@ -584,12 +570,6 @@ class ReportController extends Controller
         if ($report == null) {
             abort(404);
         }
-
-        $report_path = config('constants.storage_paths.reports', '');
-        $report_path = str_replace('{patient_id}', $report->patient_id, $report_path);
-        $report_path = str_replace('{filename}', $report->filename, $report_path);
-
-        Storage::disk('reports')->delete($report_path);
 
         $report->delete();
 

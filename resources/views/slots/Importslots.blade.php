@@ -30,7 +30,7 @@
                         <input type="file" name="slots">
                     </div>
                     <div class="col-md-6">
-                        <a href="https://circumcisionclinic.net/sample/slots.xlsx" class="btn btn-sm btn-info mb-2 mr-2 right" download>Download Sample File For Reference</a>
+                        <a href="{{ url('/sample/slots.xlsx') }}" class="btn btn-sm btn-info mb-2 mr-2 right" download>Download Sample File For Reference</a>
 
                     </div>
                 </div>

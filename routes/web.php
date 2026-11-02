@@ -44,6 +44,8 @@ use App\Http\Controllers\BotoxFaceMapPointController;
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('/admin/patients/deletion', [PatientController::class, 'deletionPage'])->name('admin.patients.deletion');
+    Route::post('/admin/patients/{patientId}/delete', [PatientController::class, 'adminDelete'])->name('admin.patients.delete');
     Route::post('/assign-role/{user}', [RoleController::class, 'assignRole'])->name('assign-role');
     Route::post('/sync-templates', [AdminController::class, 'sync'])->name('admin.sync-templates');
 });
@@ -60,7 +62,8 @@ Route::get('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::cl
 Route::post('/cm/{unique_key}', [CosmeticMedicalPatientRegisterLinkController::class, 'postRegister'])->name('cosmetic-medical.register');
 Route::get('/messages/appointment-deposit', [MessageController::class, 'appointmentDeposit'])
     ->name('messages.appointment-deposit');
-Route::get('/messages/appointment-depoist', [MessageController::class, 'appointmentDeposit']);
+Route::get('/messages/appointment-depoist', [MessageController::class, 'appointmentDeposit'])
+    ->name('messages.appointment-depoist');
 Route::get('/messages/appointment-reminder', [MessageController::class, 'appointmentReminder'])
     ->middleware('throttle:30,1')
     ->name('messages.appointment-reminder');
@@ -73,6 +76,111 @@ Route::get('/messages/appointment-completed', [MessageController::class, 'appoin
 Route::get('/messages/appointment-canceled', [MessageController::class, 'appointmentCanceled'])
     ->middleware('throttle:30,1')
     ->name('messages.appointment-canceled');
+
+/*
+|--------------------------------------------------------------------------
+| Public role based links
+|--------------------------------------------------------------------------
+|
+| Same actions as the public routes above, but with the workspace prefix that
+| the link builder generates, for example:
+|
+|   https://clinicalforms.net/minor-surgery/r/abc123
+|
+| The {role} segment only appears in the URL. The controllers still resolve the
+| record from the unique key (or id) exactly like the legacy routes do, and the
+| parameters are read by name inside the closures because Laravel passes route
+| parameters to controllers by position. The unprefixed routes above therefore
+| keep every link that has already been sent to patients working.
+|
+*/
+$publicRoleSegment = '[A-Za-z0-9_-]+';
+
+Route::get('/{role}/r/{unique_key}', function () {
+    $inquiry = \App\Models\PatientInquiry::where('unique_key', request()->route()->parameter('unique_key'))->firstOrFail();
+    abort_unless(\App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $inquiry->role_id), 404);
+
+    return app(PatientRegisterLinkController::class)
+        ->register(request()->route()->parameter('unique_key'));
+})->where('role', $publicRoleSegment)->name('patient-register.link.role');
+
+Route::post('/{role}/r/{unique_key}', function () {
+    $inquiry = \App\Models\PatientInquiry::where('unique_key', request()->route()->parameter('unique_key'))->firstOrFail();
+    abort_unless(\App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $inquiry->role_id), 404);
+
+    return app(PatientRegisterLinkController::class)
+        ->postRegister(request(), request()->route()->parameter('unique_key'));
+})->where('role', $publicRoleSegment)->name('patient-register.register.role');
+
+Route::get('/{role}/rp/{unique_key}', function () {
+    $signature = \App\Models\RemoteParentSignature::where('unique_key', request()->route()->parameter('unique_key'))->firstOrFail();
+    $patient = $signature->patient;
+    abort_unless($patient && \App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $patient->role_id), 404);
+
+    return app(RemoteParentSignatureController::class)
+        ->signature(request()->route()->parameter('unique_key'));
+})->where('role', $publicRoleSegment)->name('remote-parent-signature.link.role');
+
+Route::post('/{role}/postsignature', function (Request $request) {
+    $signature = \App\Models\RemoteParentSignature::findOrFail($request->input('id'));
+    $patient = $signature->patient;
+    abort_unless($patient && \App\Helpers\PublicLink::matchesPrefix($request->route()->parameter('role'), $patient->role_id), 404);
+
+    return app(RemoteParentSignatureController::class)->postsignature($request);
+})->where('role', $publicRoleSegment)->name('remote-parent-signature.postsignature.role');
+
+Route::get('/{role}/cm/{unique_key}', function () {
+    $inquiry = \App\Models\PatientInquiry::where('unique_key', request()->route()->parameter('unique_key'))->firstOrFail();
+    abort_unless(\App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $inquiry->role_id), 404);
+
+    return app(CosmeticMedicalPatientRegisterLinkController::class)
+        ->register(request()->route()->parameter('unique_key'));
+})->where('role', $publicRoleSegment)->name('cosmetic-medical.link.role');
+
+Route::post('/{role}/cm/{unique_key}', function () {
+    $inquiry = \App\Models\PatientInquiry::where('unique_key', request()->route()->parameter('unique_key'))->firstOrFail();
+    abort_unless(\App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $inquiry->role_id), 404);
+
+    return app(CosmeticMedicalPatientRegisterLinkController::class)
+        ->postRegister(request(), request()->route()->parameter('unique_key'));
+})->where('role', $publicRoleSegment)->name('cosmetic-medical.register.role');
+
+Route::get('/{role}/messages/appointment-deposit', function () {
+    return app(MessageController::class)->appointmentDeposit(request());
+})->where('role', $publicRoleSegment)->name('messages.appointment-deposit.role');
+
+Route::get('/{role}/messages/appointment-reminder', function () {
+    $appointment = \App\Models\Appointment::with('patient')->findOrFail(request()->query('id'));
+    abort_unless($appointment->patient && \App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $appointment->patient->role_id), 404);
+
+    return app(MessageController::class)->appointmentReminder(request());
+})->where('role', $publicRoleSegment)
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-reminder.role');
+
+Route::get('/{role}/messages/appointment-arranged', function () {
+    $appointment = \App\Models\Appointment::with('patient')->findOrFail(request()->query('id'));
+    abort_unless($appointment->patient && \App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $appointment->patient->role_id), 404);
+
+    return app(MessageController::class)->appointmentArranged(request());
+})->where('role', $publicRoleSegment)
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-arranged.role');
+
+Route::get('/{role}/messages/appointment-completed', function () {
+    $patient = \App\Models\Patient::findOrFail(request()->query('id'));
+    abort_unless(\App\Helpers\PublicLink::matchesPrefix(request()->route()->parameter('role'), $patient->role_id), 404);
+
+    return app(MessageController::class)->appointmentCompleted(request());
+})->where('role', $publicRoleSegment)
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-completed.role');
+
+Route::get('/{role}/messages/appointment-canceled', function () {
+    return app(MessageController::class)->appointmentCanceled(request());
+})->where('role', $publicRoleSegment)
+    ->middleware('throttle:30,1')
+    ->name('messages.appointment-canceled.role');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -202,9 +310,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/general', [SettingsController::class, 'general'])->name('settings.general');
         Route::prefix('team')->group(function () {
-            Route::get('/', [TeamController::class, 'index'])->name('settings.team');
-            Route::get('/add', [TeamController::class, 'edit'])->name('settings.team.add');
-            Route::get('/{id}/edit', [TeamController::class, 'edit'])->name('settings.team.edit');
+            Route::middleware('role:admin')->group(function () {
+                Route::get('/', [TeamController::class, 'index'])->name('settings.team');
+                Route::get('/add', [TeamController::class, 'edit'])->name('settings.team.add');
+                Route::get('/{id}/edit', [TeamController::class, 'edit'])->name('settings.team.edit');
+            });
             Route::post('/store', [TeamController::class, 'store'])->name('settings.team.store');
         });
 

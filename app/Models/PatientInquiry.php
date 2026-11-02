@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use App\Helpers\PublicLink;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\TracksDeletedMetadata;
 
 class PatientInquiry extends Model
 {
+    use SoftDeletes, TracksDeletedMetadata;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -34,7 +39,11 @@ class PatientInquiry extends Model
     public function getLinkAttribute()
     {
         try {
-            return route('patient-register.link', ['unique_key' => $this->unique_key]);
+            return PublicLink::make(
+                'patient-register.link',
+                ['unique_key' => $this->unique_key],
+                $this->role_id
+            );
         } catch (\Exception $e) {
             return '#';
         }
@@ -42,7 +51,11 @@ class PatientInquiry extends Model
     public function getLinkCosmeticMedicalAttribute()
     {
         try {
-            return route('cosmetic-medical.link', ['unique_key' => $this->unique_key]);
+            return PublicLink::make(
+                'cosmetic-medical.link',
+                ['unique_key' => $this->unique_key],
+                $this->role_id
+            );
         } catch (\Exception $e) {
             return '#';
         }
@@ -51,5 +64,10 @@ class PatientInquiry extends Model
     public function patient()
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
     }
 }

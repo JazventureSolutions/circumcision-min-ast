@@ -124,8 +124,10 @@ class CosmeticMedicalController extends Controller
                 'patient_inquiries.patient_id',
             ])->where('patient_inquiries.is_cosmetic', 1)
                 ->leftJoin('patients', function ($join) {
-                    $join->on('patient_inquiries.patient_id', 'patients.id');
-                })->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
+                    $join->on('patient_inquiries.patient_id', 'patients.id')
+                        ->whereNull('patients.deleted_at');
+                })->whereNull('patient_inquiries.deleted_at')
+                ->where('patient_inquiries.role_id', auth()->user()->currentRoleId());
 
             if ($request->has('branch_id')) {
                 $patient_inqs = $patient_inqs

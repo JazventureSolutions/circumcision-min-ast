@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use App\Helpers\PublicLink;
 use Illuminate\Http\Request;
 use App\Models\RemoteParentSignature;
 use App\Models\Patient;
@@ -184,6 +185,17 @@ class RemoteParentSignatureController extends Controller
 
         if ($remote_parent_signature == null) {
             abort(404);
+        }
+
+        if (! request()->route('role') && PublicLink::enabled()) {
+            $patient = $remote_parent_signature->patient;
+            if ($patient) {
+                return redirect()->away(PublicLink::make(
+                    'remote-parent-signature.link',
+                    ['unique_key' => $unique_key],
+                    $patient->role_id
+                ));
+            }
         }
 
         if ($remote_parent_signature->is_submit != '0') {

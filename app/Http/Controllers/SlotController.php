@@ -40,6 +40,8 @@ class SlotController extends Controller
 
         $used_appointment_times = Appointment::select('appointments.start_time')
             ->join('patients', 'appointments.patient_id', '=', 'patients.id')
+            ->whereNull('appointments.deleted_at')
+            ->whereNull('patients.deleted_at')
             ->where('patients.branch_id', $branch_id)
             ->where('patients.role_id',auth()->user()->currentRoleId())
             ->where('date', Carbon::rawCreateFromFormat('d.m.Y', $appointment_date)->toDateString());

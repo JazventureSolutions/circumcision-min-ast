@@ -12,7 +12,11 @@ class SummaryController extends Controller
     private function get_query(Request $request)
     {
         $patients = Patient::select(['patients.*', 'appointments.followup_date', 'appointments.start_time', 'appointments.status', 'appointments.followup_status', 'appointments.date'])
-            ->leftJoin('appointments', 'patients.id', '=', 'appointments.patient_id')
+            ->leftJoin('appointments', function ($join) {
+                $join->on('patients.id', '=', 'appointments.patient_id')
+                    ->whereNull('appointments.deleted_at');
+            })
+            ->whereNull('patients.deleted_at')
             ->where('approved', "1")
             ->has('appointments', '>', 0)
             ->with('appointments')->where('patients.role_id',auth()->user()->currentRoleId());

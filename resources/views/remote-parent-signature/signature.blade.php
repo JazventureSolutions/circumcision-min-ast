@@ -16,7 +16,7 @@
             </div>
         </div>
 
-        <form id="patient_form" class="form" method="POST" action="{{ route('remote-parent-signature.postsignature') }}">
+        <form id="patient_form" class="form" method="POST" action="{{ $remote_parent_signature->publicSubmitUrl() }}">
             @csrf
             <input type="hidden" name="id" value="{{ $remote_parent_signature->id }}">
             <input type="hidden" name="parent_sign" value="">

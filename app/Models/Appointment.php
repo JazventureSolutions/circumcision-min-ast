@@ -6,9 +6,13 @@ use Carbon\Carbon;
 use App\Models\Branch;
 use App\Helpers\Helper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\TracksDeletedMetadata;
 
 class Appointment extends Model
 {
+    use SoftDeletes, TracksDeletedMetadata;
+
     /**
      * The attributes that are mass assignable.
      *

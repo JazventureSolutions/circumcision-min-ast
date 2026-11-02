@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\TracksDeletedMetadata;
 use App\Models\Patient;
 use App\Models\Template;
 use App\Services\SharePointBackupService;
 
 class Report extends Model
 {
+    use SoftDeletes, TracksDeletedMetadata;
+
     /**
      * The attributes that are mass assignable.
      *

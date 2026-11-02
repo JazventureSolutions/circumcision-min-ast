@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\TracksDeletedMetadata;
 
 class Patient extends Model
 {
+    use SoftDeletes, TracksDeletedMetadata;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -131,6 +135,16 @@ class Patient extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function remoteParentSignatures()
+    {
+        return $this->hasMany(RemoteParentSignature::class);
     }
 
     public function getAddressAttribute()

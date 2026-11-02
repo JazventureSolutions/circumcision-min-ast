@@ -1,7 +1,10 @@
 RewriteEngine On
-RewriteCond %{HTTP_HOST} circumcisionclinic\.net [NC]
+RewriteCond %{HTTP_HOST} ^(www\.)?circumcisionclinic\.net$ [NC]
 RewriteCond %{SERVER_PORT} 80
 RewriteRule ^(.*)$ https://circumcisionclinic.net/$1 [R,L]
+RewriteCond %{HTTP_HOST} ^(www\.)?clinicalforms\.net$ [NC]
+RewriteCond %{SERVER_PORT} 80
+RewriteRule ^(.*)$ https://clinicalforms.net/$1 [R,L]
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
