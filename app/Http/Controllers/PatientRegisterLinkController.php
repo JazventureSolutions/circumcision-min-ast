@@ -109,6 +109,7 @@ class PatientRegisterLinkController extends Controller
             'approved' => $patient->approved ?? "0",
             'branch_id' => $request->branch_id,
             'remote_patent_status' => $patient_inq->remote_patent_status ?? 0,
+            'fit_for_procedure' => $patient_inq->fit_for_procedure ?? 0,
             // 'period_id' => $patient->period_id ?? "1"
         ];
 
@@ -248,6 +249,7 @@ class PatientRegisterLinkController extends Controller
             'email' => $request->email,
             'cell_number' => $request->cell_number,
             'remote_patent_status' => $request->remote_patent_status,
+            'fit_for_procedure' => $request->input('fit_for_procedure') ? 1 : 0,
             'role_id' => auth()->user()->currentRoleId() ?? 1,
         ];
 
@@ -302,6 +304,12 @@ class PatientRegisterLinkController extends Controller
             $patient_inq->update($data);
         } else {
             $patient_inq = PatientInquiry::create($data);
+        }
+
+        if ((int) $patient_inq->patient_id > 0) {
+            Patient::whereKey($patient_inq->patient_id)->update([
+                'fit_for_procedure' => $data['fit_for_procedure'],
+            ]);
         }
 
         return redirect()->route('patient-register.edit', ['id' => $patient_inq->id]);

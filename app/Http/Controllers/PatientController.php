@@ -26,6 +26,7 @@ class PatientController extends Controller
             'patients.id AS id',
             DB::raw('CONCAT(patients.name, " (", patients.id, ")") AS text'),
             'patients.type AS type',
+            'patients.fit_for_procedure AS fit_for_procedure',
         ])->where('approved', "1");
 
         if ($request->has('q')) {

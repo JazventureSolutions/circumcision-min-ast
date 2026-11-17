@@ -72,6 +72,12 @@
                     </div>
                     <!--end::Group-->
                 </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <input type="checkbox" name="fit_for_procedure" value="1" @if(old('fit_for_procedure', $patient_inq->fit_for_procedure)) checked @endif>
+                        <label class="form-label">Fit for Procedure</label>
+                    </div>
+                </div>
                 <div class="col-md-12">
 
                     <!--begin::Group-->

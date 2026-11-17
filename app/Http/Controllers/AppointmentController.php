@@ -299,6 +299,7 @@ class AppointmentController extends Controller
 
         $patient = Patient::findOrFail($request->patient);
         $patient->remote_patent_status = $request->remote_patent_status ?? 0;
+        $patient->fit_for_procedure = $request->input('fit_for_procedure') ? 1 : 0;
         $patient->appoint_type = $request->appoint_type;
         if($request->appoint_type =='Procedure')
         {

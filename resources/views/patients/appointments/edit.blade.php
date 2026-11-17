@@ -338,6 +338,12 @@
                     <!--end::Group-->
                 </div>
                 <div class="col-md-4">
+                    <div class="form-group">
+                        <input type="checkbox" name="fit_for_procedure" value="1" @if(optional($patient)->fit_for_procedure == 1) checked @endif>
+                        <label class="form-label">Fit for Procedure</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <!--begin::Group-->
                     <div class="form-group">
                         <label class="form-label">Appointment Type</label>
@@ -603,6 +609,7 @@
             }
 
             $('[name="patient_id"]').val(data.id);
+            $('[name="fit_for_procedure"]').prop('checked', data.fit_for_procedure == 1);
         });
 
         $('.patient-select2').trigger('select.select2');

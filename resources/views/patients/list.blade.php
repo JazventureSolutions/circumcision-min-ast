@@ -76,6 +76,7 @@
                     <th>Contact Details</th>
                     <th>Status</th>
                     <th>Remote Patent Status</th>
+                    <th>Fit for Procedure</th>
                     <th>Appointment Status</th>
                     <th>Actions</th>
                 </tr>
@@ -157,6 +158,7 @@
                         'contact_details',
                         'status',
                         'remote_patent_status',
+                        'fit_for_procedure',
                         'appoint_type',
                         'actions'
                     ],
@@ -174,6 +176,16 @@
                 { data: 'contact_details' },
                 { data: 'status' },
                 { data: 'remote_patent_status', searchable: false },
+                {
+                    data: 'fit_for_procedure',
+                    searchable: false,
+                    orderable: false,
+                    render: function (value) {
+                        return value == 1
+                            ? '<span style="padding:2px 6px;border-radius:4px;background-color:#e7f6ec;color:#218838;font-weight:600">&#10003; Fit</span>'
+                            : '';
+                    }
+                },
                 { data: 'appoint_type', searchable: false },
                 { data: 'actions', responsivePriority: -1 },
             ],

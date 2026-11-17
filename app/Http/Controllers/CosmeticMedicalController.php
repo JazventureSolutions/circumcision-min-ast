@@ -244,6 +244,7 @@ class CosmeticMedicalController extends Controller
             'email' => $request->email,
             'cell_number' => $request->cell_number,
             'remote_patent_status' => $request->remote_patent_status,
+            'fit_for_procedure' => $request->input('fit_for_procedure') ? 1 : 0,
             'role_id' => auth()->user()->currentRoleId() ?? 1,
             'patient_id' => $request->patient_id ?? '0',
             'is_cosmetic' => 1,
@@ -259,6 +260,12 @@ class CosmeticMedicalController extends Controller
             $patient_inq->update($data);
         } else {
             $patient_inq = PatientInquiry::create($data);
+        }
+
+        if ((int) $patient_inq->patient_id > 0) {
+            Patient::whereKey($patient_inq->patient_id)->update([
+                'fit_for_procedure' => $data['fit_for_procedure'],
+            ]);
         }
 
         if (config('constants.config.enable_sms') && in_array($request->form_type, ['submit','sms', 'sms_email'])) {
